@@ -1,0 +1,6 @@
+{
+  "name": "shelfwise",
+  "private": true,
+  "type": "module",
+  "description": "Static Piedmont Triad grocery comparison. No build step."
+}
