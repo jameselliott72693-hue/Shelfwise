@@ -365,6 +365,8 @@ dd { margin: 0.1rem 0 0; font-variant-numeric: tabular-nums; font-weight: 700; }
   color: var(--teal);
   font-weight: 650;
 }
+.update-note { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; justify-content: space-between; }
+.update-note p { margin: 0; }
 .gas-hero {
   margin: 0.35rem 0 0;
   font-family: var(--serif);

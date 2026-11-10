@@ -8,7 +8,19 @@ compatibility_date = "2026-11-01"
 binding = "SHELFWISE"
 id = "00000000000000000000000000000000"
 
+[durable_objects]
+bindings = [
+  { name = "POOL", class_name = "PricePool" }
+]
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["PricePool"]
+
 [vars]
 # Dev keys use https://connect.dev.instacart.tools
 # Production keys use https://connect.instacart.com
 INSTACART_API_BASE = "https://connect.instacart.com"
+# Comma-separated browser origins allowed to call this worker. No wildcard.
+# GitHub Pages origin has no path. Add a custom domain here before using it.
+ALLOWED_ORIGINS = "https://jameselliott72693-hue.github.io,http://localhost:8000,http://127.0.0.1:8000,http://localhost:8765,http://127.0.0.1:8765"

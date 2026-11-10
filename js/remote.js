@@ -36,11 +36,11 @@ export function fetchPrices() {
   return request("/prices");
 }
 
-export function submitPrices(reports) {
+export function submitPrices(reports, session) {
   return request("/prices", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ reports }),
+    body: JSON.stringify({ consent: true, session, reports }),
   });
 }
 

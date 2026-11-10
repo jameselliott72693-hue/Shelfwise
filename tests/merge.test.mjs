@@ -97,11 +97,12 @@ test("reports validate, drop duplicates, and aggregate to a median", () => {
   assert.equal(validateReport({
     storeId: "aldi", itemId: "milk", tier: "store", price: 2, date: "2026-08-01",
   }, today).error, "date");
+  const session = "aaaaaaaaaaaaaaaa";
   const reports = trimReports([
-    good.report,
-    { ...good.report },
-    { ...good.report, price: 3.09, date: "2026-11-09" },
-    { ...good.report, price: 9, date: "2026-01-01" },
+    { ...good.report, session },
+    { ...good.report, session },
+    { ...good.report, session, price: 3.09, date: "2026-11-09" },
+    { ...good.report, session, price: 9, date: "2026-01-01" },
   ], today);
   assert.equal(reports.length, 2);
   const rows = aggregateReports(reports, today);
@@ -111,6 +112,24 @@ test("reports validate, drop duplicates, and aggregate to a median", () => {
   assert.equal(region.asOf, "2026-11-09");
   assert.equal(withinDailyLimit(38, 2), true);
   assert.equal(withinDailyLimit(39, 2), false);
+  assert.equal(validateReport({
+    storeId: "aldi", itemId: "milk", tier: "store", price: 2, date: "2026-11-08", session: "short",
+  }, today).error, "session");
+});
+
+test("the same price from two shoppers both count, and one shopper does not", () => {
+  const base = {
+    storeId: "aldi", itemId: "milk", tier: "store", price: 2.79, date: "2026-11-08", town: "greensboro",
+  };
+  const reports = trimReports([
+    { ...base, session: "aaaaaaaaaaaaaaaa" },
+    { ...base, session: "aaaaaaaaaaaaaaaa" },
+    { ...base, session: "bbbbbbbbbbbbbbbb" },
+  ], today);
+  assert.equal(reports.length, 2);
+  const region = aggregateReports(reports, today).find((row) => row.town == null);
+  assert.equal(region.n, 2);
+  assert.equal(region.price, 2.79);
 });
 
 test("a receipt price fills a line the bundled estimate calls missing", () => {

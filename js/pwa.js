@@ -1,7 +1,29 @@
-export function registerServiceWorker() {
+export function registerServiceWorker(onUpdate) {
   if (!("serviceWorker" in navigator)) return;
+  let hadController = Boolean(navigator.serviceWorker.controller);
+  let told = false;
+  const notify = () => {
+    if (told || !hadController) return;
+    told = true;
+    onUpdate?.();
+  };
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!hadController) {
+      hadController = true;
+      return;
+    }
+    notify();
+  });
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js", { scope: "./" }).catch(() => {});
+    navigator.serviceWorker.register("./sw.js", { scope: "./" }).then((registration) => {
+      if (registration.waiting && navigator.serviceWorker.controller) notify();
+      registration.addEventListener("updatefound", () => {
+        const worker = registration.installing;
+        worker?.addEventListener("statechange", () => {
+          if (worker.state === "installed" && navigator.serviceWorker.controller) notify();
+        });
+      });
+    }).catch(() => {});
   });
 }
 

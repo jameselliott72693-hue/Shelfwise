@@ -6,12 +6,14 @@ import { FEE_NOTE, MEMBERSHIPS, deliveryRows } from "../data/fees.js";
 import { GAS_FALLBACK } from "../data/gas.js";
 import { scoreTrip, quoteUnit, MODE_LABEL, QUALITY_RATE, qualityWord, SPLIT_MIN_SAVE } from "./calc.js";
 import { money, miles, esc, sourceDetail, tierLabel, listText, prettyDate } from "./format.js";
-import { loadState, saveState, encodeShare, decodeShare } from "./storage.js";
+import { loadState, saveState, encodeShare, decodeShare, deviceSession } from "./storage.js";
 import { effectiveGas } from "./gas.js";
 import { backendConfigured, fetchHealth, fetchGas, fetchPrices, submitPrices, createInstacartLink } from "./remote.js";
 import { parseReceiptText } from "./receipt.js";
 import { readReceiptImage } from "./ocr.js";
 import { registerServiceWorker, isStandalone, isIosSafari } from "./pwa.js";
+import { isPartialNumber } from "./input.js";
+import { instacartLinkUrl } from "./links.js";
 
 const FEATURED = ["Cheerios", "Duke's", "Tide", "Coca-Cola"];
 const LOYALTY = [
@@ -42,6 +44,7 @@ if (shared) {
 let renderTimer = 0;
 let toastTimer = 0;
 let installEvent = null;
+let updateReady = false;
 let gasNote = "";
 let receiptPaste = "";
 let draft = null;
@@ -53,7 +56,10 @@ app.addEventListener("change", onChange);
 app.addEventListener("input", onInput);
 
 render();
-registerServiceWorker();
+registerServiceWorker(() => {
+  updateReady = true;
+  render();
+});
 window.addEventListener("beforeinstallprompt", (event) => {
   event.preventDefault();
   installEvent = event;
@@ -134,6 +140,7 @@ function render() {
 
 function view(origin, result) {
   return `
+    ${updateReady ? `<div class="offline-wrap"><div class="offline-note update-note"><p>An update is ready.</p><button type="button" class="button" data-action="reload-app">Reload</button></div></div>` : ""}
     ${installCard()}
     ${navigator.onLine ? "" : `<div class="offline-wrap"><p class="offline-note">Offline. Shelfwise is using the list and prices saved on this phone.</p></div>`}
     ${toolbar(origin)}
@@ -573,7 +580,7 @@ function priceRow(storeId, entry, tier) {
   const model = quoteUnit(entry.id, storeId, tier, {
     weeklyAds: state.weeklyAds,
     loyalty: state.loyalty,
-    overrides: {},
+    overrides: state.overrides,
     receipts: state.receipts,
     community: state.communityRows,
     townId: state.townId,
@@ -939,6 +946,8 @@ function onClick(event) {
     sendInstacart();
   } else if (action === "install") {
     promptInstall();
+  } else if (action === "reload-app") {
+    location.reload();
   } else if (action === "dismiss-install") {
     state.installDismissed = true;
     persist();
@@ -1011,6 +1020,10 @@ function onChange(event) {
     persist();
     render();
   } else if (action === "override" || action === "drive" || action === "qty-input" || action === "pump") {
+    if (isPartialNumber(input.value)) {
+      clearTimeout(renderTimer);
+      return;
+    }
     commitField(input);
     persist();
     render();
@@ -1067,13 +1080,12 @@ function onInput(event) {
     return;
   }
   if (action === "override" || action === "drive" || action === "qty-input" || action === "pump") {
-    if (isPartialNumber(input.value)) return;
+    if (isPartialNumber(input.value)) {
+      clearTimeout(renderTimer);
+      return;
+    }
     if (commitField(input)) scheduleRender();
   }
-}
-
-function isPartialNumber(raw) {
-  return /^\d+\.$/.test(raw.trim()) || raw.trim() === ".";
 }
 
 function commitField(input) {
@@ -1352,6 +1364,7 @@ function saveReceipt() {
     return;
   }
   const share = Boolean(draft.share) && backendConfigured();
+  const session = share ? deviceSession() : "";
   persist();
   clearDraft();
   render();
@@ -1359,7 +1372,11 @@ function saveReceipt() {
     toast(`Saved ${reports.length} price${reports.length === 1 ? "" : "s"} on this phone.`);
     return;
   }
-  submitPrices(reports).then((body) => {
+  if (!session) {
+    toast("Saved on this phone. Sharing needs local storage for an anonymous id.");
+    return;
+  }
+  submitPrices(reports, session).then((body) => {
     if (Array.isArray(body.prices)) state.communityRows = body.prices;
     persist();
     render();
@@ -1385,8 +1402,9 @@ async function sendInstacart() {
         lines,
         linkback: location.href.split("#")[0],
       });
-      if (result.url) {
-        window.open(result.url, "_blank", "noopener,noreferrer");
+      const url = instacartLinkUrl(result.url);
+      if (url) {
+        window.open(url, "_blank", "noopener,noreferrer");
         toast("Instacart shopping list is open.");
         return;
       }

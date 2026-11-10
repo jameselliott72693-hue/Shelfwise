@@ -15,7 +15,7 @@ python3 -m http.server
 Then visit `http://localhost:8000`. ES modules and the service worker do not load from a `file://` URL.
 
 ```bash
-node --test tests/
+npm test
 ```
 
 ## What works with no backend
@@ -46,6 +46,7 @@ The site is a progressive web app. `manifest.json` and `sw.js` are at the reposi
 - **Android Chrome:** the install card can call the browser install prompt. You can also use the browser menu and choose Install app or Add to Home screen.
 - **iPhone Safari:** tap Share, then Add to Home Screen. iOS does not offer a one-tap install prompt to the page.
 - After that, Shelfwise opens full screen and the service worker serves the shell and bundled data when the phone is offline. The last list, pump price, receipt prices, and last community or EIA response stay in `localStorage`.
+- A new deploy is fetched with a cache-busting request. If a page is still running the previous copy when the new service worker takes over, Shelfwise shows **An update is ready** and a Reload button.
 
 ## GitHub Pages
 
@@ -57,7 +58,7 @@ After you deploy the worker, put its URL in `js/config.js` and push that change 
 
 The worker lives in `worker/`. It is not part of the GitHub Pages deploy. You need three accounts only if you want the live pieces. None of the keys go in the static site or in git.
 
-1. A free [Cloudflare](https://dash.cloudflare.com/sign-up) account, to host the worker and a KV namespace.
+1. A free [Cloudflare](https://dash.cloudflare.com/sign-up) account, to host the worker, one KV namespace for the gas cache, and one Durable Object for the price pool.
 2. A free [EIA Open Data API key](https://www.eia.gov/opendata/register.php). Secret name: `EIA_API_KEY`.
 3. An [Instacart Developer Platform](https://docs.instacart.com/developer_platform_api) key, optional. Secret name: `INSTACART_API_KEY`. A development key uses `https://connect.dev.instacart.tools`. A production key, after Instacart's review, uses `https://connect.instacart.com`.
 
@@ -71,7 +72,9 @@ npm install
 npx wrangler kv namespace create SHELFWISE
 ```
 
-Copy the namespace id into `worker/wrangler.toml`, replacing `00000000000000000000000000000000`.
+Copy the namespace id into `worker/wrangler.toml`, replacing `00000000000000000000000000000000`. The price pool is the `PricePool` Durable Object already declared in that file. `npx wrangler deploy` applies its migration. Writes to the pool are serialized on that one object, so two reports sent at the same time are both kept. KV is only the last EIA week.
+
+`ALLOWED_ORIGINS` in `wrangler.toml` is the comma-separated list of site origins allowed to call the worker. There is no wildcard. The default includes `https://jameselliott72693-hue.github.io` and local static servers. Add a custom domain origin before pointing that site at the worker. A browser request from any other origin is rejected. Sharing also requires `consent: true` plus the phone's random session id; the id is only used to drop a double tap, and two shoppers who paid the same price both count.
 
 ```bash
 npx wrangler secret put EIA_API_KEY
@@ -174,7 +177,7 @@ Fee figures are estimates reviewed November 10, 2026. Confirm them at checkout. 
 
 ## How to update prices
 
-All bundled shelf numbers flow from `data/prices.js`. After an edit, refresh the browser. There is no build. Bump the service worker cache name in `sw.js` (`CACHE`) when you change cached files, so installed phones pick up the new shell.
+All bundled shelf numbers flow from `data/prices.js`. After an edit, refresh the browser. There is no build. Bump the service worker cache name in `sw.js` (`CACHE`) when you change cached files. The worker then asks for those files with `cache: "reload"`, and an open tab shows **An update is ready**.
 
 1. Change `PRICE_AS_OF` and `PRICE_AS_OF_LABEL`.
 2. Move every store-brand shelf together with `STORE_FACTOR`, or national-brand shelves with `NATIONAL_FACTOR`.
@@ -194,15 +197,15 @@ The bundled gas week is `data/gas.js`. Fee copy and links are `data/fees.js`. Qu
 
 Lists, typed prices, receipt prices, the pump price, fuel settings, the last community medians, the last EIA week, and an optional location stay in `localStorage` under `shelfwise.v1`. The share link encodes the list and the trip settings only.
 
-A receipt photo is decoded on the phone and then discarded with the review. It is not stored and not uploaded. An opt-in community report sends only store, item, tier, price, date, and town. The worker does not keep the IP next to the price. It keeps a daily counter under a hash of the IP so one phone cannot flood the median.
+A receipt photo is decoded on the phone and then discarded with the review. It is not stored and not uploaded. An opt-in community report sends store, item, tier, price, date, town, and a random per-phone id stored locally as `shelfwise.session`. The id is not an account and is not shown in the comparison. It only stops one phone from counting the same price twice; two phones that paid the same price both count. The worker rejects a report that does not include that opt-in flag. It does not keep the IP next to the price. The daily counter, under a hash of the IP, lives in the same Durable Object as the pool.
 
 ## Tests
 
 ```bash
-node --test tests/
+npm test
 ```
 
-`tests/calc.test.mjs` covers the original rank, drive, and fee math. `tests/merge.test.mjs` covers price order, medians, gas choice, and the reviewed fees. `tests/receipt.test.mjs` covers receipt parsing. `tests/worker.test.mjs` covers the worker's validation, rate limit, EIA parsing, and Instacart call shape with a fake network.
+`tests/calc.test.mjs` covers the original rank, drive, and fee math. `tests/merge.test.mjs` covers price order, medians, gas choice, and the reviewed fees. `tests/input.test.mjs` covers unfinished decimals and Instacart link checks. `tests/receipt.test.mjs` covers receipt parsing. `tests/worker.test.mjs` covers the worker's validation, rate limit, consent, CORS, EIA parsing, and Instacart call shape with a fake network.
 
 ## Files
 

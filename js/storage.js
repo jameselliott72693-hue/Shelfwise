@@ -2,6 +2,22 @@ import { itemById, presetById, cloneLines } from "../data/items.js";
 import { townById } from "../data/towns.js";
 
 export const STORAGE_KEY = "shelfwise.v1";
+const SESSION_KEY = "shelfwise.session";
+
+/** Random per-phone id so the community pool can ignore a double tap without merging two shoppers. */
+export function deviceSession() {
+  try {
+    const existing = localStorage.getItem(SESSION_KEY);
+    if (existing && /^[a-zA-Z0-9]{16,64}$/.test(existing)) return existing;
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    const id = [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+    localStorage.setItem(SESSION_KEY, id);
+    return id;
+  } catch {
+    return "";
+  }
+}
 
 const TIERS = new Set(["store", "name", "premium"]);
 const PRIORITIES = new Set(["price", "balanced", "quality"]);

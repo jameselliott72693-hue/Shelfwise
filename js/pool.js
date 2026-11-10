@@ -51,21 +51,29 @@ export function validateReport(raw, today) {
   const age = ageDays(date, today);
   if (age == null || age < -1 || age > REPORT_MAX_AGE_DAYS) return { ok: false, error: "date" };
   if (town && !townById[town]) return { ok: false, error: "town" };
+  const session = raw.session == null || raw.session === "" ? "" : String(raw.session);
+  if (session && !/^[a-zA-Z0-9]{16,64}$/.test(session)) return { ok: false, error: "session" };
   return {
     ok: true,
-    report: { storeId, itemId, tier, price: round2(price), date, town },
+    report: { storeId, itemId, tier, price: round2(price), date, town, session },
   };
 }
 
+/**
+ * Collapse a double submit from the same phone. Two shoppers who paid the
+ * same price keep both reports, because the key includes the session.
+ * A report with no session is kept as its own submission.
+ */
 export function dedupeReports(reports) {
   const seen = new Set();
   const out = [];
-  for (const report of reports || []) {
-    const key = [report.storeId, report.itemId, report.tier, report.price, report.date, report.town].join("|");
-    if (seen.has(key)) continue;
+  (reports || []).forEach((report, index) => {
+    const who = report.session || report.id || `anon:${index}`;
+    const key = [report.storeId, report.itemId, report.tier, report.price, report.date, report.town, who].join("|");
+    if (seen.has(key)) return;
     seen.add(key);
     out.push(report);
-  }
+  });
   return out;
 }
 

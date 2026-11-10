@@ -1,4 +1,4 @@
-const CACHE = "shelfwise-shell-v2";
+const CACHE = "shelfwise-shell-v3";
 
 const SHELL = [
   "./",
@@ -16,6 +16,8 @@ const SHELL = [
   "./js/remote.js",
   "./js/ocr.js",
   "./js/pwa.js",
+  "./js/input.js",
+  "./js/links.js",
   "./data/fees.js",
   "./data/items.js",
   "./data/prices.js",
@@ -30,7 +32,11 @@ const SHELL = [
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)).then(() => self.skipWaiting()));
+  event.waitUntil(
+    caches.open(CACHE)
+      .then((cache) => cache.addAll(SHELL.map((path) => new Request(path, { cache: "reload" }))))
+      .then(() => self.skipWaiting()),
+  );
 });
 
 self.addEventListener("activate", (event) => {
@@ -45,32 +51,21 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin || event.request.method !== "GET") return;
   if (event.request.mode === "navigate") {
-    event.respondWith(networkThenCache(event.request, "./index.html"));
+    event.respondWith(networkFirst(event.request, "./index.html"));
     return;
   }
-  event.respondWith(cacheThenNetwork(event.request));
+  event.respondWith(networkFirst(event.request));
 });
 
-async function networkThenCache(request, fallback) {
+async function networkFirst(request, fallback) {
   const cache = await caches.open(CACHE);
   try {
-    const fresh = await fetch(request);
-    if (fresh.ok) cache.put(fallback, fresh.clone());
-    return fresh;
+    const fresh = await fetch(request.url, { cache: "reload", credentials: "same-origin" });
+    if (fresh.ok) cache.put(fallback || request, fresh.clone());
+    if (fresh.ok || fresh.type === "opaqueredirect") return fresh;
   } catch {
-    return (await cache.match(fallback)) || (await cache.match("./")) || new Response("Offline", { status: 503 });
+    /* Offline or a blocked reload. Use the last cached copy. */
   }
-}
-
-async function cacheThenNetwork(request) {
-  const cache = await caches.open(CACHE);
-  const cached = await cache.match(request);
-  const network = fetch(request)
-    .then((response) => {
-      if (response.ok) cache.put(request, response.clone());
-      return response;
-    })
-    .catch(() => null);
-  if (cached) return cached;
-  return (await network) || new Response("Offline", { status: 503 });
+  const cached = (fallback && await cache.match(fallback)) || await cache.match(request) || await cache.match("./");
+  return cached || new Response("Offline", { status: 503 });
 }
