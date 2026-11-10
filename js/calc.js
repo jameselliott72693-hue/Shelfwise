@@ -11,6 +11,7 @@
 import { chains, chainById } from "../data/stores.js";
 import { itemById } from "../data/items.js";
 import { prices, adFor } from "../data/prices.js";
+import { pickCommunityPrice } from "./pool.js";
 
 export const QUALITY_RATE = 0.09;
 export const QUALITY_WEIGHT = { price: 0, balanced: 1, quality: 2 };
@@ -82,6 +83,26 @@ export function quoteUnit(itemId, storeId, tier, options) {
     return { price: round2(Number(override)), source: "yours" };
   }
 
+  const receipt = options.receipts?.[storeId]?.[itemId]?.[tier];
+  const receiptPrice = receipt && typeof receipt === "object" ? Number(receipt.price) : Number(receipt);
+  if (receipt != null && receipt !== "" && Number.isFinite(receiptPrice) && receiptPrice >= 0) {
+    const quoted = { price: round2(receiptPrice), source: "receipt" };
+    if (receipt && typeof receipt === "object" && receipt.date) quoted.asOf = receipt.date;
+    return quoted;
+  }
+
+  const today = options.today || new Date().toISOString().slice(0, 10);
+  const community = pickCommunityPrice(options.community, {
+    storeId,
+    itemId,
+    tier,
+    townId: options.townId || "",
+    today,
+  });
+  if (community) {
+    return { price: round2(community.price), source: "community", asOf: community.asOf, n: community.n };
+  }
+
   const regular = prices[itemId]?.[storeId]?.[tier];
   const ad = adFor(itemId, storeId, tier);
   const cardOn = Boolean(chain?.loyalty) && options.loyalty?.[storeId] !== false;
@@ -124,6 +145,8 @@ function scoreChain(chain, lines, options, origin) {
   let ads = 0;
   let cards = 0;
   let yours = 0;
+  let receiptCount = 0;
+  let communityCount = 0;
 
   for (const line of lines) {
     const entry = itemById[line.itemId];
@@ -143,6 +166,8 @@ function scoreChain(chain, lines, options, origin) {
     if (quote.source === "ad") ads += 1;
     if (quote.source === "card") cards += 1;
     if (quote.source === "yours") yours += 1;
+    if (quote.source === "receipt") receiptCount += 1;
+    if (quote.source === "community") communityCount += 1;
     priced.push({
       itemId: line.itemId,
       name: entry.name,
@@ -151,6 +176,8 @@ function scoreChain(chain, lines, options, origin) {
       department: entry.department,
       unit: quote.price,
       source: quote.source,
+      asOf: quote.asOf || null,
+      n: quote.n || 0,
       lineShelf,
       lineQuality,
     });
@@ -176,6 +203,8 @@ function scoreChain(chain, lines, options, origin) {
     ads,
     cards,
     yours,
+    receiptCount,
+    communityCount,
     qualityScores: chain.quality,
     qualityNote: chain.qualityNote,
   };

@@ -18,7 +18,11 @@ export function defaultState() {
     loyalty: { foodlion: true, harristeeter: true, lowes: true, target: true, lidl: true },
     lines: cloneLines(presetById.family.lines),
     overrides: {},
-    drive: { mode: "mpg", mpg: 26, gasPrice: 4.11, roadFactor: 1.3, perMile: 0.158 },
+    drive: { mode: "mpg", mpg: 26, gasPrice: 3.695, roadFactor: 1.3, perMile: 0.142, pumpPrice: null },
+    receipts: {},
+    communityRows: [],
+    liveGas: null,
+    installDismissed: false,
     tip: "none",
     memberships: {
       walmartPlus: false,
@@ -50,6 +54,90 @@ function cleanLines(lines) {
     next.push({ itemId, qty: safeQty, tier });
   }
   return next;
+}
+
+const LEGACY_GAS = 4.11;
+
+function cleanPump(raw) {
+  if (raw?.drive && Object.prototype.hasOwnProperty.call(raw.drive, "pumpPrice")) {
+    return pumpNumber(raw.drive.pumpPrice);
+  }
+  const legacy = Number(raw?.drive?.gasPrice);
+  if (Number.isFinite(legacy) && Math.abs(legacy - LEGACY_GAS) > 0.001) return pumpNumber(legacy);
+  return null;
+}
+
+function pumpNumber(value) {
+  if (value == null || value === "") return null;
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < 0 || number > 20) return null;
+  return Math.round(number * 1000) / 1000;
+}
+
+function cleanReceipts(raw) {
+  const receipts = {};
+  if (!raw || typeof raw !== "object") return receipts;
+  for (const [storeId, items] of Object.entries(raw)) {
+    if (!items || typeof items !== "object") continue;
+    for (const [itemId, tiers] of Object.entries(items)) {
+      if (!itemById[itemId] || !tiers || typeof tiers !== "object") continue;
+      for (const [tier, value] of Object.entries(tiers)) {
+        if (!TIERS.has(tier) || !value || typeof value !== "object") continue;
+        const price = Number(value.price);
+        const date = String(value.date || "");
+        if (!Number.isFinite(price) || price < 0 || price > 500) continue;
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
+        receipts[storeId] ||= {};
+        receipts[storeId][itemId] ||= {};
+        receipts[storeId][itemId][tier] = { price: Math.round(price * 100) / 100, date };
+      }
+    }
+  }
+  return receipts;
+}
+
+function cleanCommunity(raw) {
+  if (!Array.isArray(raw)) return [];
+  const rows = [];
+  for (const row of raw.slice(0, 2000)) {
+    const price = Number(row?.price);
+    const n = Number(row?.n);
+    const asOf = String(row?.asOf || "");
+    const tier = row?.tier;
+    if (!row?.storeId || !itemById[row?.itemId] || !TIERS.has(tier)) continue;
+    if (!Number.isFinite(price) || price < 0.01 || price > 500) continue;
+    if (!Number.isFinite(n) || n < 1) continue;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(asOf)) continue;
+    rows.push({
+      storeId: String(row.storeId),
+      itemId: row.itemId,
+      tier,
+      town: row.town ? String(row.town) : null,
+      price: Math.round(price * 100) / 100,
+      n: Math.round(n),
+      asOf,
+    });
+  }
+  return rows;
+}
+
+function cleanLiveGas(raw) {
+  const price = Number(raw?.price);
+  const period = String(raw?.period || "");
+  if (!Number.isFinite(price) || price <= 0 || price > 20) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(period)) return null;
+  return {
+    price: Math.round(price * 1000) / 1000,
+    period,
+    label: typeof raw.label === "string" ? raw.label.slice(0, 80) : "",
+    region: typeof raw.region === "string" ? raw.region.slice(0, 80) : "",
+    product: typeof raw.product === "string" ? raw.product.slice(0, 80) : "",
+    sourceName: typeof raw.sourceName === "string" ? raw.sourceName.slice(0, 120) : "",
+    sourceUrl: typeof raw.sourceUrl === "string" ? raw.sourceUrl.slice(0, 300) : "",
+    series: typeof raw.series === "string" ? raw.series.slice(0, 40) : "",
+    fetchedAt: typeof raw.fetchedAt === "string" ? raw.fetchedAt.slice(0, 40) : "",
+    stale: Boolean(raw.stale),
+  };
 }
 
 function cleanOverrides(raw) {
@@ -90,10 +178,15 @@ export function sanitizeState(raw) {
     drive: {
       mode: raw.drive?.mode === "perMile" ? "perMile" : "mpg",
       mpg: numberOr(raw.drive?.mpg, 26),
-      gasPrice: numberOr(raw.drive?.gasPrice, 4.11),
+      gasPrice: numberOr(raw.drive?.gasPrice, 3.695),
       roadFactor: numberOr(raw.drive?.roadFactor, 1.3),
-      perMile: numberOr(raw.drive?.perMile, 0.158),
+      perMile: numberOr(raw.drive?.perMile, 0.142),
+      pumpPrice: cleanPump(raw),
     },
+    receipts: cleanReceipts(raw.receipts),
+    communityRows: cleanCommunity(raw.communityRows),
+    liveGas: cleanLiveGas(raw.liveGas),
+    installDismissed: Boolean(raw.installDismissed),
     tip: TIPS.has(raw.tip) ? raw.tip : "none",
     memberships: Object.fromEntries(MEMBER_IDS.map((id) => [id, Boolean(raw.memberships?.[id])])),
     selectedStoreId: typeof raw.selectedStoreId === "string" ? raw.selectedStoreId : null,
@@ -127,6 +220,10 @@ export function saveState(state) {
     lines: state.lines,
     overrides: state.overrides,
     drive: state.drive,
+    receipts: state.receipts,
+    communityRows: state.communityRows,
+    liveGas: state.liveGas,
+    installDismissed: Boolean(state.installDismissed),
     tip: state.tip,
     memberships: state.memberships,
     selectedStoreId: state.selectedStoreId,

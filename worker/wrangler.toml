@@ -1,0 +1,14 @@
+name = "shelfwise"
+main = "src/index.js"
+compatibility_date = "2026-11-01"
+
+# Create the namespace, then replace this id:
+#   npx wrangler kv namespace create SHELFWISE
+[[kv_namespaces]]
+binding = "SHELFWISE"
+id = "00000000000000000000000000000000"
+
+[vars]
+# Dev keys use https://connect.dev.instacart.tools
+# Production keys use https://connect.instacart.com
+INSTACART_API_BASE = "https://connect.instacart.com"
