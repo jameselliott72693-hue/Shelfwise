@@ -51,8 +51,8 @@ export const FEE_LINKS = {
         label: "Harris Teeter pickup FAQ",
       },
       delivery: {
-        url: "https://www.harristeeter.com/hc/help/faqs/ways-to-shop/pickup",
-        label: "Harris Teeter ways to shop",
+        url: "https://www.harristeeter.com/i/hc/help/faqs/ht-online-shopping",
+        label: "Harris Teeter online shopping FAQ",
       },
     },
     lowes: {

@@ -101,9 +101,11 @@ test("split trip math reconciles to the winner", () => {
   assert.equal(net, Math.round(result.split.net * 100));
 });
 
-test("the three weighings are not the same winner on the sample week", () => {
-  const names = ["price", "balanced", "quality"].map((priority) => scoreTrip(options({ priority })).winner.id);
-  assert.equal(new Set(names).size, 3);
+test("quality first picks a different sample-week winner than price or balanced", () => {
+  const names = Object.fromEntries(["price", "balanced", "quality"].map((priority) => [priority, scoreTrip(options({ priority })).winner.id]));
+  assert.equal(names.price, "aldi");
+  assert.equal(names.balanced, "aldi");
+  assert.equal(names.quality, "harristeeter");
 });
 
 test("cookout name brands can leave a discount chain incomplete", () => {

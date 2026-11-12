@@ -23,7 +23,7 @@ npm test
 Leave `BACKEND_URL` in `js/config.js` as an empty string. That is the default, and GitHub Pages does not need a server.
 
 - The eight-chain comparison, presets, loyalty cards, weekly ad estimates, split trip, share link, print, and download.
-- The bundled EIA gas price: **$3.695 per gallon**, Lower Atlantic (PADD 1C) regular, week of November 2, 2026 (released November 3, 2026), with a link to the EIA series. A "price I paid at the pump" override replaces it in the drive math.
+- The bundled EIA gas price: **$3.609 per gallon**, Lower Atlantic (PADD 1C) regular, week of November 9, 2026 (released November 10, 2026), with a link to the EIA series. A "price I paid at the pump" override replaces it in the drive math.
 - Pickup, store delivery, Instacart, DoorDash, Uber Eats, and Shipt rows, dated November 10, 2026, with source links. Amounts that were not on a public fee page stay labeled as the older estimate.
 - **Send list to Instacart** copies the list and opens Instacart search.
 - Receipt photos are read on the phone with tesseract.js (downloaded the first time you scan). You review every match. Confirmed prices save on this phone only. The photo is never uploaded.
@@ -145,7 +145,7 @@ For each item, store, and tier, in order:
 3. A community median from the last 21 days, when one exists.
 4. The weekly ad estimate, when it is on and it is lower than the regular estimate.
 5. The store-brand card estimate, 5% off, when that card is on.
-6. The bundled Triad estimate from October 18, 2026.
+6. The bundled Triad estimate from October 18, 2026. Some weekly ads are later, when a public circular confirmed that package.
 
 Each line shows which of those it used, and the date for estimates, receipts, and community prices. Community prices are a median. One town needs two fresh reports before its median replaces the regional one.
 
@@ -153,7 +153,7 @@ Each line shows which of those it used, and the date for estimates, receipts, an
 
 Shelf is the sum of the line prices at that chain.
 
-Drive is the fuel for a round trip to the nearest store in the built-in list. One-way miles are the straight-line distance times the road factor. In MPG mode the price is your pump price, or else the newest EIA week, or else the bundled $3.695.
+Drive is the fuel for a round trip to the nearest store in the built-in list. One-way miles are the straight-line distance times the road factor. In MPG mode the price is your pump price, or else the newest EIA week, or else the bundled $3.609.
 
 Quality is not a charge at the register. Each chain has a produce, meat, and other score from −2 to +2 in `data/stores.js`. On Balanced, each point is a 9% credit (better than typical) or penalty (worse) on that department's shelf dollars. Quality first doubles the weight. Price only sets it to $0. The rate lives in `QUALITY_RATE` in `js/calc.js`.
 
@@ -163,15 +163,15 @@ The split trip tries every pair. Each item goes to the store with the lower shel
 
 ## Gas and fees
 
-Gas is the EIA weekly retail average for Lower Atlantic (PADD 1C) regular, all formulations. There is no Greensboro or North Carolina series on that table. The bundled copy is the week of November 2, 2026, $3.695, from [the EIA series](https://www.eia.gov/dnav/pet/hist/LeafHandler.ashx?n=PET&s=EMM_EPMR_PTE_R1Z_DPG&f=W). The worker replaces it when EIA has that week or a newer one. The pump field is the only station-level price.
+Gas is the EIA weekly retail average for Lower Atlantic (PADD 1C) regular, all formulations. There is no Greensboro or North Carolina series on that table. The bundled copy is the week of November 9, 2026, $3.609, from [the EIA series](https://www.eia.gov/dnav/pet/hist/LeafHandler.ashx?n=PET&s=EMM_EPMR_PTE_R1Z_DPG&f=W). The worker replaces it when EIA has that week or a newer one. The pump field is the only station-level price.
 
 Fee figures are estimates reviewed November 10, 2026. Confirm them at checkout. The notes in `data/stores.js` and the links in `data/fees.js` say where a number was published and where it was not:
 
-- Harris Teeter pickup is free at $35, otherwise $4.95.
+- Harris Teeter pickup is free at $35, otherwise $4.95. Delivery is $9.95 on orders of $50 or more and $11.95 under $50 (online shopping FAQ, November 12, 2026).
 - Lowes Foods To Go is $4.95 per order, or included with the $49 annual membership. To Go shelf prices match the store.
 - Target Drive Up and Order Pickup are $0. Same-day is $9.99, or $0 over $35 with Target Circle 360 ($99 a year, $49 with a Target Circle Card). The Shipt toggle stands in for that membership.
 - Instacart's delivery fee varies. Instacart+ is $0 delivery on eligible orders of $10 or more, and service fees still apply. The non-member delivery amount in the model is a typical estimate.
-- Walmart and Food Lion fee pages did not load. Those dollar amounts are still the October 18, 2026 estimates.
+- Walmart help, checked November 12, 2026, lists pickup at $0 over $35 and store delivery at $9.95, or $0 over $35 with Walmart+. The under-$35 dollar is still the October 18, 2026 estimate. Food Lion To Go does not publish a fixed pickup or delivery fee, so those dollars stay the October 18 estimates.
 - DoorDash and Uber Eats do not publish one national grocery fee. Those amounts are typical estimates.
 - Aldi and Lidl stay off in this Triad model. Aldi's national delivery is Instacart-powered, and Instacart prices can differ from the shelf. No official US Lidl fee was confirmed.
 

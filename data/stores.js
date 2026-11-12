@@ -111,7 +111,7 @@ export const chains = [
         available: true,
         fee: 0,
         underMinFee: 6.99,
-        note: `Pickup fee estimate $0 on larger orders. Walmart's fee page did not load on November 10, 2026, so this is still the October 18, 2026 estimate. ${FULL_NOTE}`,
+        note: `Walmart help, checked November 12, 2026: pickup is $0 on orders over $35. The under-$35 dollar in this row is still the October 18, 2026 estimate. The help page does not publish that amount for standard pickup. ${FULL_NOTE}`,
       }),
       delivery: own({
         available: true,
@@ -119,7 +119,7 @@ export const chains = [
         underMinFee: 6.99,
         memberKey: "walmartPlus",
         memberFee: 0,
-        note: `Delivery fee estimate $9.95, or $0 over $35 with Walmart+. Walmart's fee page did not load on November 10, 2026, so this is still the October 18, 2026 estimate. ${FULL_NOTE}`,
+        note: `Walmart help, checked November 12, 2026: standard store delivery is $9.95, or $0 over $35 with Walmart+. The under-$35 add-on in this row is still the October 18, 2026 estimate. ${FULL_NOTE}`,
       }),
       instacart: partner({ note: "Walmart is not on Instacart in this Triad model." }),
       doordash: partner({
@@ -162,13 +162,13 @@ export const chains = [
         available: true,
         fee: 0,
         underMinFee: 4.95,
-        note: `Pickup fee estimate $0 on larger orders at most Triad stores. Food Lion's fee page did not load on November 10, 2026, so this is still the October 18, 2026 estimate. ${FULL_NOTE}`,
+        note: `Pickup dollars are still the October 18, 2026 estimate. The Food Lion To Go site checked November 12, 2026 does not publish a fixed pickup fee. ${FULL_NOTE}`,
       }),
       delivery: own({
         available: true,
         fee: 7.95,
         underMinFee: 4.95,
-        note: `Store delivery fee estimate $7.95. Food Lion's fee page did not load on November 10, 2026, so this is still the October 18, 2026 estimate. ${FULL_NOTE}`,
+        note: `Delivery dollars are still the October 18, 2026 estimate. The Food Lion To Go site checked November 12, 2026 does not publish a fixed delivery fee. ${FULL_NOTE}`,
       }),
       instacart: partner({
         available: true,
@@ -211,8 +211,9 @@ export const chains = [
       delivery: own({
         available: true,
         fee: 9.95,
-        underMinFee: 4.95,
-        note: `Harris Teeter delivery stays at the October 18, 2026 estimate of $9.95. The pickup FAQ rechecked on November 10, 2026 does not list the delivery fee. Confirm at checkout. ${FULL_NOTE}`,
+        min: 50,
+        underMinFee: 2,
+        note: `ExpressLane delivery is $9.95 on orders of $50 or more and $11.95 under $50. Yearly subscribers can get free delivery on orders of $35 or more. This model has no ExpressLane membership toggle. Harris Teeter online shopping FAQ, checked November 12, 2026. Confirm at checkout. ${FULL_NOTE}`,
       }),
       instacart: partner({
         available: true,
