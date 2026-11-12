@@ -53,9 +53,9 @@ export const chains = [
       loc("aldi-lexington", "N Talbert Blvd", "101 N Talbert Blvd", "Lexington", 35.81534, -80.24502),
     ],
     services: {
-      pickup: own({ note: "Aldi does not offer Triad-wide curbside in this model." }),
-      delivery: own({ note: "Aldi does not offer Triad-wide store delivery in this model." }),
-      instacart: partner({ note: "Instacart does not carry Aldi in this Triad model." }),
+      pickup: own({ note: "Aldi does not publish a Triad curbside fee in this model. National Aldi delivery is Instacart-powered, and those prices can differ from the shelf." }),
+      delivery: own({ note: "Aldi does not offer its own Triad store delivery in this model." }),
+      instacart: partner({ note: "Instacart powers Aldi delivery nationally, but this Triad model has no confirmed fee, so the row stays off. Instacart prices can differ from the shelf." }),
       doordash: partner({ note: "DoorDash does not take an Aldi cart in this Triad model." }),
       ubereats: partner({ note: "Uber Eats does not carry Aldi across the Triad in this model." }),
       shipt: partner({ note: "Shipt does not carry Aldi in this Triad model." }),
@@ -74,8 +74,8 @@ export const chains = [
       loc("lidl-burlington", "S Church St", "3010 S Church St", "Burlington", 36.08055, -79.49146),
     ],
     services: {
-      pickup: own({ note: "Lidl does not offer Triad-wide curbside in this model." }),
-      delivery: own({ note: "Lidl does not offer Triad-wide store delivery in this model." }),
+      pickup: own({ note: "No official US Lidl pickup fee was confirmed on November 10, 2026. This Triad model leaves the row off." }),
+      delivery: own({ note: "No official US Lidl delivery fee was confirmed on November 10, 2026. This Triad model leaves the row off." }),
       instacart: partner({ note: "Instacart does not carry Lidl in this Triad model." }),
       doordash: partner({ note: "DoorDash does not take a Lidl cart in this Triad model." }),
       ubereats: partner({ note: "Uber Eats does not carry Lidl across the Triad in this model." }),
@@ -111,7 +111,7 @@ export const chains = [
         available: true,
         fee: 0,
         underMinFee: 6.99,
-        note: `Pickup fee estimate $0 on larger orders. ${FULL_NOTE}`,
+        note: `Pickup fee estimate $0 on larger orders. Walmart's fee page did not load on November 10, 2026, so this is still the October 18, 2026 estimate. ${FULL_NOTE}`,
       }),
       delivery: own({
         available: true,
@@ -119,7 +119,7 @@ export const chains = [
         underMinFee: 6.99,
         memberKey: "walmartPlus",
         memberFee: 0,
-        note: `Delivery fee estimate $9.95, or $0 over $35 with Walmart+. ${FULL_NOTE}`,
+        note: `Delivery fee estimate $9.95, or $0 over $35 with Walmart+. Walmart's fee page did not load on November 10, 2026, so this is still the October 18, 2026 estimate. ${FULL_NOTE}`,
       }),
       instacart: partner({ note: "Walmart is not on Instacart in this Triad model." }),
       doordash: partner({
@@ -162,13 +162,13 @@ export const chains = [
         available: true,
         fee: 0,
         underMinFee: 4.95,
-        note: `Pickup fee estimate $0 on larger orders at most Triad stores. ${FULL_NOTE}`,
+        note: `Pickup fee estimate $0 on larger orders at most Triad stores. Food Lion's fee page did not load on November 10, 2026, so this is still the October 18, 2026 estimate. ${FULL_NOTE}`,
       }),
       delivery: own({
         available: true,
         fee: 7.95,
         underMinFee: 4.95,
-        note: `Store delivery fee estimate $7.95. ${FULL_NOTE}`,
+        note: `Store delivery fee estimate $7.95. Food Lion's fee page did not load on November 10, 2026, so this is still the October 18, 2026 estimate. ${FULL_NOTE}`,
       }),
       instacart: partner({
         available: true,
@@ -206,13 +206,13 @@ export const chains = [
         available: true,
         fee: 0,
         underMinFee: 4.95,
-        note: `ExpressLane pickup fee estimate $0 on larger orders. ${FULL_NOTE}`,
+        note: `ExpressLane pickup is free on orders of $35 or more, otherwise $4.95 (Harris Teeter FAQ, reviewed November 10, 2026). Confirm at checkout. ${FULL_NOTE}`,
       }),
       delivery: own({
         available: true,
         fee: 9.95,
         underMinFee: 4.95,
-        note: `Harris Teeter delivery fee estimate $9.95. ${FULL_NOTE}`,
+        note: `Harris Teeter delivery stays at the October 18, 2026 estimate of $9.95. The pickup FAQ rechecked on November 10, 2026 does not list the delivery fee. Confirm at checkout. ${FULL_NOTE}`,
       }),
       instacart: partner({
         available: true,
@@ -250,17 +250,19 @@ export const chains = [
     services: {
       pickup: own({
         available: true,
-        fee: 0,
-        underMinFee: 4.95,
-        note: `Lowes Foods To Go pickup fee estimate $0 on larger orders. ${FULL_NOTE}`,
+        fee: 4.95,
+        min: 0,
+        memberKey: "lowesToGo",
+        memberFee: 0,
+        note: `Lowes Foods To Go personal shopping fee is $4.95 per order, or included with the $49 annual membership (site, November 2026). To Go prices match the store. Confirm at checkout. ${FULL_NOTE}`,
       }),
       delivery: own({
         available: true,
-        fee: 7.95,
-        underMinFee: 4.95,
+        fee: 4.95,
+        min: 0,
         memberKey: "lowesToGo",
         memberFee: 0,
-        note: `To Go delivery fee estimate $7.95, or $0 over $35 with Lowes To Go. ${FULL_NOTE}`,
+        note: `Lowes Foods To Go personal shopping fee is $4.95 per order, or included with the $49 annual membership. To Go prices match the store. Confirm at checkout. ${FULL_NOTE}`,
       }),
       instacart: partner({
         available: true,
@@ -297,15 +299,15 @@ export const chains = [
       pickup: own({
         available: true,
         fee: 0,
-        note: `Drive Up fee estimate $0. ${FULL_NOTE}`,
+        note: `Drive Up and Order Pickup fee estimate $0 (Target, reviewed November 10, 2026). Confirm at checkout. ${FULL_NOTE}`,
       }),
       delivery: own({
         available: true,
         fee: 9.99,
-        underMinFee: 7,
+        min: 35,
         memberKey: "shipt",
         memberFee: 0,
-        note: `Target same-day is Shipt in this model. Fee estimate $9.99, or $0 over $35 with a Shipt membership. ${FULL_NOTE}`,
+        note: `Same-day delivery is $9.99, or $0 on orders over $35 with Target Circle 360 ($99 a year, $49 with a Target Circle Card). No markup on Target orders over $35 except some alcohol. The Shipt toggle stands in for Circle 360 here. Confirm at checkout. ${FULL_NOTE}`,
       }),
       instacart: partner({ note: "Target is not on Instacart in this Triad model." }),
       doordash: partner({
@@ -340,10 +342,10 @@ export const chains = [
         available: true,
         fee: 0,
         underMinFee: 4.95,
-        note: `Publix pickup fee estimate $0 where the store offers it. ${FULL_NOTE}`,
+        note: `Publix curbside was not a flat published fee on November 10, 2026. This row keeps a $0 estimate where the store offers pickup. Online Instacart prices can be higher than the shelf. Confirm at checkout. ${FULL_NOTE}`,
       }),
       delivery: own({
-        note: "Publix delivery in the Triad usually runs through Instacart, on its own row below.",
+        note: "Publix delivery in the Triad runs through Instacart, on its own row below. The FAQ says fees are shown at checkout and online item prices can differ from the shelf.",
       }),
       instacart: partner({
         available: true,

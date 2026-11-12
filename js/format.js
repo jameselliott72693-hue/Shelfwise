@@ -1,10 +1,10 @@
 import { brandLabel, packageSize, itemById } from "../data/items.js";
 import { PRICE_AS_OF_LABEL } from "../data/prices.js";
 
-export function money(value) {
+export function money(value, digits = 2) {
   if (value == null || Number.isNaN(value)) return "—";
   const sign = value < 0 ? "−" : "";
-  return `${sign}$${Math.abs(value).toFixed(2)}`;
+  return `${sign}$${Math.abs(value).toFixed(digits)}`;
 }
 
 export function miles(value) {
@@ -25,7 +25,30 @@ export function sourceLabel(source) {
   if (source === "ad") return "Ad estimate";
   if (source === "card") return "Card −5%";
   if (source === "yours") return "Your price";
+  if (source === "receipt") return "Your receipt";
+  if (source === "community") return "Community";
   return "Estimate";
+}
+
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+export function prettyDate(iso) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ""));
+  if (!match) return "";
+  const month = MONTHS[Number(match[2]) - 1];
+  if (!month) return "";
+  return `${month} ${Number(match[3])}, ${match[1]}`;
+}
+
+export function sourceDetail(source, asOf, n) {
+  const label = sourceLabel(source);
+  if (source === "community") {
+    const count = n ? `${n} report${n === 1 ? "" : "s"}` : "";
+    return [label, count, asOf ? prettyDate(asOf) : ""].filter(Boolean).join(" · ");
+  }
+  if (source === "receipt") return asOf ? `${label} · ${prettyDate(asOf)}` : label;
+  if (source === "yours") return label;
+  return `${label} · ${PRICE_AS_OF_LABEL}`;
 }
 
 export function tierLabel(tier) {
@@ -39,7 +62,7 @@ export function listText({ lines, store, placeLabel, asOfLabel = PRICE_AS_OF_LAB
     "Shelfwise grocery list",
     `Place: ${placeLabel}`,
     store ? `Priced at: ${store.name}` : "Not priced at a store",
-    `Prices: Triad estimates for comparable packages as of ${asOfLabel}. Not live register prices.`,
+    `Prices: typed prices and receipt prices stay on this device. Other lines are community medians or Triad estimates as of ${asOfLabel}. Not a live register scan.`,
     "",
   ];
   const body = lines.map((line) => {
