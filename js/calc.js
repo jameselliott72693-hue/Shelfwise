@@ -11,6 +11,7 @@
 import { chains, chainById } from "../data/stores.js";
 import { itemById } from "../data/items.js";
 import { prices, adFor } from "../data/prices.js";
+import { DEFAULT_PER_MILE, GAS_PRICE } from "../data/gas.js";
 
 export const QUALITY_RATE = 0.09;
 export const QUALITY_WEIGHT = { price: 0, balanced: 1, quality: 2 };
@@ -68,10 +69,10 @@ export function tripDistance(straight, roadFactor) {
 
 export function fuelCost(roundTripMiles, drive) {
   if (drive.mode === "perMile") {
-    return roundTripMiles * clamp(drive.perMile, 0, 5, 0.158);
+    return roundTripMiles * clamp(drive.perMile, 0, 5, DEFAULT_PER_MILE);
   }
   const mpg = clamp(drive.mpg, 5, 100, 26);
-  const gas = clamp(drive.gasPrice, 0, 20, 4.11);
+  const gas = clamp(drive.gasPrice, 0, 20, GAS_PRICE);
   return (roundTripMiles / mpg) * gas;
 }
 

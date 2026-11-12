@@ -111,7 +111,7 @@ export const chains = [
         available: true,
         fee: 0,
         underMinFee: 6.99,
-        note: `Pickup fee estimate $0 on larger orders. ${FULL_NOTE}`,
+        note: `Walmart help, checked November 12, 2026: pickup is $0 on orders over $35. The under-$35 dollar in this row is still the October 18, 2026 estimate. The help page does not publish that amount for standard pickup. ${FULL_NOTE}`,
       }),
       delivery: own({
         available: true,
@@ -119,7 +119,7 @@ export const chains = [
         underMinFee: 6.99,
         memberKey: "walmartPlus",
         memberFee: 0,
-        note: `Delivery fee estimate $9.95, or $0 over $35 with Walmart+. ${FULL_NOTE}`,
+        note: `Walmart help, checked November 12, 2026: standard store delivery is $9.95, or $0 over $35 with Walmart+. The under-$35 add-on in this row is still the October 18, 2026 estimate. ${FULL_NOTE}`,
       }),
       instacart: partner({ note: "Walmart is not on Instacart in this Triad model." }),
       doordash: partner({
@@ -162,13 +162,13 @@ export const chains = [
         available: true,
         fee: 0,
         underMinFee: 4.95,
-        note: `Pickup fee estimate $0 on larger orders at most Triad stores. ${FULL_NOTE}`,
+        note: `Pickup dollars are still the October 18, 2026 estimate. The current Food Lion To Go site does not publish a fixed pickup fee. ${FULL_NOTE}`,
       }),
       delivery: own({
         available: true,
         fee: 7.95,
         underMinFee: 4.95,
-        note: `Store delivery fee estimate $7.95. ${FULL_NOTE}`,
+        note: `Delivery dollars are still the October 18, 2026 estimate. The current Food Lion To Go site does not publish a fixed delivery fee. ${FULL_NOTE}`,
       }),
       instacart: partner({
         available: true,
@@ -206,13 +206,14 @@ export const chains = [
         available: true,
         fee: 0,
         underMinFee: 4.95,
-        note: `ExpressLane pickup fee estimate $0 on larger orders. ${FULL_NOTE}`,
+        note: `ExpressLane pickup is $0 on orders over $35 and $4.95 under $35. Harris Teeter online shopping FAQ, checked November 12, 2026. ${FULL_NOTE}`,
       }),
       delivery: own({
         available: true,
         fee: 9.95,
-        underMinFee: 4.95,
-        note: `Harris Teeter delivery fee estimate $9.95. ${FULL_NOTE}`,
+        min: 50,
+        underMinFee: 2,
+        note: `ExpressLane delivery is $9.95 on orders of $50 or more and $11.95 under $50. Yearly subscribers can get free delivery on orders of $35 or more. This model has no ExpressLane membership toggle. Harris Teeter online shopping FAQ, checked November 12, 2026. ${FULL_NOTE}`,
       }),
       instacart: partner({
         available: true,
@@ -250,17 +251,21 @@ export const chains = [
     services: {
       pickup: own({
         available: true,
-        fee: 0,
-        underMinFee: 4.95,
-        note: `Lowes Foods To Go pickup fee estimate $0 on larger orders. ${FULL_NOTE}`,
+        fee: 4.95,
+        min: 0,
+        underMinFee: 0,
+        memberKey: "lowesToGo",
+        memberFee: 0,
+        note: `Lowes Foods To Go lists a $4.95 personal shopping fee per order. The $49 annual membership waives it. Checked November 12, 2026. ${FULL_NOTE}`,
       }),
       delivery: own({
         available: true,
-        fee: 7.95,
-        underMinFee: 4.95,
+        fee: 4.95,
+        min: 0,
+        underMinFee: 0,
         memberKey: "lowesToGo",
         memberFee: 0,
-        note: `To Go delivery fee estimate $7.95, or $0 over $35 with Lowes To Go. ${FULL_NOTE}`,
+        note: `The To Go page lists the same $4.95 personal shopping fee per order, waived with the annual membership. It does not list a separate delivery dollar. Checked November 12, 2026. ${FULL_NOTE}`,
       }),
       instacart: partner({
         available: true,
@@ -297,15 +302,15 @@ export const chains = [
       pickup: own({
         available: true,
         fee: 0,
-        note: `Drive Up fee estimate $0. ${FULL_NOTE}`,
+        note: `Drive Up remains the October 18, 2026 $0 estimate. The same-day help page checked November 12, 2026 does not restate a pickup dollar. ${FULL_NOTE}`,
       }),
       delivery: own({
         available: true,
         fee: 9.99,
-        underMinFee: 7,
+        underMinFee: 0,
         memberKey: "shipt",
         memberFee: 0,
-        note: `Target same-day is Shipt in this model. Fee estimate $9.99, or $0 over $35 with a Shipt membership. ${FULL_NOTE}`,
+        note: `Target help, checked November 12, 2026: same-day delivery is $9.99 per order, or $0 on orders of $35 or more with Target Circle 360. The Shipt toggle stands in for that membership. A $7 fee on the help page is only for some EBT orders under $35. ${FULL_NOTE}`,
       }),
       instacart: partner({ note: "Target is not on Instacart in this Triad model." }),
       doordash: partner({

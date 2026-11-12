@@ -1,7 +1,8 @@
 import { towns, townById } from "../data/towns.js";
 import { chains, chainById } from "../data/stores.js";
 import { items, itemById, aisles, presets, presetById, brandOptions, brandLabel, packageSize, cloneLines } from "../data/items.js";
-import { PRICE_AS_OF_LABEL } from "../data/prices.js";
+import { PRICE_NOTE } from "../data/prices.js";
+import { GAS_AS_OF_LABEL, GAS_PRICE, GAS_REGION } from "../data/gas.js";
 import { FEE_NOTE, MEMBERSHIPS, deliveryRows } from "../data/fees.js";
 import { scoreTrip, quoteUnit, MODE_LABEL, QUALITY_RATE, qualityWord, SPLIT_MIN_SAVE } from "./calc.js";
 import { money, miles, esc, sourceLabel, tierLabel, listText } from "./format.js";
@@ -101,7 +102,7 @@ function render() {
 function view(origin, result) {
   return `
     ${toolbar(origin)}
-    <p class="disclaimer">Triad estimates for comparable packages as of ${esc(PRICE_AS_OF_LABEL)}. Not live register prices. Your edits stay on this device.</p>
+    <p class="disclaimer">${esc(PRICE_NOTE)} Your edits stay on this device.</p>
     <div class="layout">
       <section class="results" id="results">
         ${winnerCard(origin, result)}
@@ -595,7 +596,7 @@ function driveCard() {
     <section class="card" id="drive">
       <div class="section-head">
         <h2>How the drive counts</h2>
-        <p>Distance is straight-line miles times a road factor, then a round trip. The default gas price is a Triad pump estimate as of ${esc(PRICE_AS_OF_LABEL)}, not a live station quote.</p>
+        <p>Distance is straight-line miles times a road factor, then a round trip. The default gas price is the EIA weekly regular price for the ${esc(GAS_REGION)}, $${GAS_PRICE.toFixed(3)} as of ${esc(GAS_AS_OF_LABEL)}, not a live station quote.</p>
       </div>
       <fieldset class="segment">
         <legend>Fuel math</legend>
@@ -622,7 +623,7 @@ function driveCard() {
           <input id="drive-mile" inputmode="decimal" value="${state.drive.perMile}" data-action="drive" data-field="perMile" ${perMile ? "" : "disabled"}>
         </label>
       </div>
-      <p class="hint">The default $ per mile is $4.11 ÷ 26 mpg, so fuel-only starts at the same place as the mpg math. Time behind the wheel is not priced.</p>
+      <p class="hint">The default $ per mile is $${GAS_PRICE.toFixed(3)} ÷ 26 mpg, so fuel-only starts at the same place as the mpg math. Time behind the wheel is not priced.</p>
     </section>
     <footer class="site-foot">
       <p>Shelfwise compares Aldi, Lidl, Walmart, Food Lion, Harris Teeter, Lowes Foods, Target, and Publix with on-device math. No account, no server, no scraped prices.</p>

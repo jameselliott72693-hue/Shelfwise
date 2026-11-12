@@ -44,7 +44,7 @@ Lowes Foods is based in Winston-Salem. The location list in `data/stores.js` is 
 - DoorDash and Uber Eats cannot import an outside cart. Those buttons copy the list and open that service's search. **Download list** saves a text file. **Copy share link** puts the list in the URL hash. **Print** uses a print view. Edited shelf prices stay on the device and are not part of the link.
 - **Delivery fees** compares store pickup, store delivery, Instacart, DoorDash, Uber Eats, and Shipt. Each available row splits food, app markup, the delivery or pickup fee, and the service fee. Tips are none, $5, or 10%. Membership toggles: Walmart+, Instacart+, DashPass, Uber One, Shipt, and Lowes To Go. Rows say where a service does not carry that chain, or not every Triad store.
 - Pick a Triad town, or use **Use my location**. The browser asks permission. The point is saved in this browser and is not sent anywhere.
-- Distance is straight-line miles times a road factor (default 1.3), labeled approximate. Fuel defaults to 26 mpg and $4.11 per gallon. Both are editable under **How the drive counts**, along with a fuel-only dollars-per-mile option.
+- Distance is straight-line miles times a road factor (default 1.3), labeled approximate. Fuel defaults to 26 mpg and $3.609 per gallon. Both are editable under **How the drive counts**, along with a fuel-only dollars-per-mile option.
 
 ## How the rank is computed
 
@@ -62,9 +62,9 @@ The split trip tries every pair. Each item goes to the store with the lower shel
 
 Nothing is scraped and the page does not call a price API.
 
-- Shelf prices and weekly ads are hand-set comparable-package estimates for the Triad as of **October 18, 2026**. See `data/prices.js`.
-- Delivery figures are typical published-fee estimates as of the same date, not a live checkout. See `data/fees.js`.
-- The default gas price, $4.11 per gallon, is a Triad pump estimate as of that date, not a station quote. Change it in the page or in the default state in `js/storage.js`.
+- Shelf prices are hand-set comparable-package estimates as of **October 18, 2026**. Weekly ads confirmed on a later public circular are dated **November 11, 2026** for Aldi, Food Lion, Harris Teeter, Lidl, and Lowes Foods, and **November 8, 2026** for Target. Publix and Walmart ad rows were not replaced. See `data/prices.js`.
+- Delivery figures mix pages checked **November 12, 2026** with October 18 estimates where a public page did not publish a fixed dollar. See `data/fees.js` and each chain's `services` in `data/stores.js`.
+- The default gas price, $3.609 per gallon, is the EIA weekly regular price for the Lower Atlantic (PADD 1C) for the week of **November 9, 2026**. It is not a station quote. See `data/gas.js`.
 
 ## How to update prices
 
@@ -80,7 +80,7 @@ All shelf numbers flow from `data/prices.js`. After an edit, refresh the browser
    ```
 
    Use `null` for a tier a store does not carry.
-5. Replace `weeklyAds` for the new ad week. Each entry is an item, a store, a tier, a dollar price, and `loyalty: true` when the card has to be on. These are sale estimates, not a scanned circular.
+5. Replace `weeklyAds` for the new ad week. Each entry is an item, a store, a tier, a dollar price, `loyalty: true` when the card has to be on, and `asOf` for the circular date. Keep an older row, with its old `asOf`, when the new circular does not confirm that package.
 
 Quality scores and the location list are in `data/stores.js`. Town centers are in `data/towns.js`. Fee estimates are in `data/fees.js` (`THIRD_PARTY` for the apps, and each chain's `services` for its own pickup and delivery).
 
@@ -109,3 +109,4 @@ node --test tests/calc.test.mjs
 | `data/items.js` | Catalog and preset lists |
 | `data/prices.js` | Dated shelf estimates and ads |
 | `data/fees.js` | Dated delivery-fee estimates |
+| `data/gas.js` | Default EIA gasoline price |

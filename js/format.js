@@ -1,5 +1,5 @@
 import { brandLabel, packageSize, itemById } from "../data/items.js";
-import { PRICE_AS_OF_LABEL } from "../data/prices.js";
+import { PRICE_AS_OF_LABEL, PRICE_NOTE } from "../data/prices.js";
 
 export function money(value) {
   if (value == null || Number.isNaN(value)) return "—";
@@ -39,7 +39,7 @@ export function listText({ lines, store, placeLabel, asOfLabel = PRICE_AS_OF_LAB
     "Shelfwise grocery list",
     `Place: ${placeLabel}`,
     store ? `Priced at: ${store.name}` : "Not priced at a store",
-    `Prices: Triad estimates for comparable packages as of ${asOfLabel}. Not live register prices.`,
+    `Prices: ${asOfLabel === PRICE_AS_OF_LABEL ? PRICE_NOTE : `Triad estimates for comparable packages as of ${asOfLabel}. Not live register prices.`}`,
     "",
   ];
   const body = lines.map((line) => {

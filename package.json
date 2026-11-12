@@ -2,5 +2,8 @@
   "name": "shelfwise",
   "private": true,
   "type": "module",
-  "description": "Static Piedmont Triad grocery comparison. No build step."
+  "description": "Static Piedmont Triad grocery comparison. No build step.",
+  "scripts": {
+    "test": "node --test tests/calc.test.mjs"
+  }
 }

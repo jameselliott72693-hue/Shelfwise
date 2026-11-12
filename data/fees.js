@@ -1,27 +1,33 @@
 /**
- * Typical published-fee estimates as of October 18, 2026.
- * Not a live checkout. Fees change by address, time, and basket size.
- * Nothing here is fetched from a delivery app.
+ * Delivery and pickup fees. Not a live checkout.
+ * Dollars re-checked on November 12, 2026 stay labeled in FEE_NOTE.
+ * Dollars a public page did not fix stay the October 18, 2026 estimates.
+ * Nothing here is fetched from a delivery app at runtime.
  */
 
 export const FEE_AS_OF_LABEL = "October 18, 2026";
 
 export const FEE_NOTE =
-  "Typical published-fee estimates for a Triad grocery order as of October 18, 2026. Not a live checkout. A service can be missing at a store even when the row shows a number.";
+  "Fees re-checked November 12, 2026 where a public page loaded: Harris Teeter ExpressLane, Target same-day, Lowes Foods To Go, Walmart pickup over $35 and the $9.95 delivery, Instacart+ at $10, and Shipt member delivery over $35. Walmart's under-$35 add-on and Food Lion's pickup and delivery dollars are still October 18, 2026 estimates. Instacart, DoorDash, Uber Eats, and non-member Shipt rates that those pages do not fix are still the October 18 estimates. Not a live checkout. A service can be missing at a store even when the row shows a number.";
 
 export const THIRD_PARTY = {
   instacart: {
     label: "Instacart",
+    // Markup, service rate, and the $7.99 delivery figure are still October 18 estimates.
+    // Instacart help, checked November 12, 2026, says those dollars vary and that
+    // Instacart+ delivery is $0 on eligible orders of $10 or more.
     markup: 0.1,
     serviceRate: 0.05,
     serviceMin: 2,
     delivery: 7.99,
     memberKey: "instacartPlus",
     memberDelivery: 0,
-    min: 35,
+    min: 10,
   },
   doordash: {
     label: "DoorDash",
+    // DoorDash help, checked November 12, 2026, describes a variable service fee
+    // outside a short list of markets. The 12% rate remains the October 18 estimate.
     markup: 0.15,
     serviceRate: 0.12,
     serviceMin: 0,
@@ -42,6 +48,9 @@ export const THIRD_PARTY = {
   },
   shipt: {
     label: "Shipt",
+    // Shipt pricing, checked November 12, 2026: members pay $0 delivery on orders
+    // of $35 or more, and $7 under $35. This model cannot split that $7 from the
+    // non-member delivery, so the $9.99 figure remains the October 18 estimate.
     markup: 0.08,
     serviceRate: 0,
     serviceMin: 0,
@@ -107,7 +116,7 @@ function finish(name, service, shelf, markup, feeInfo, serviceFee, tip, extraNot
   const tipDollars = tipAmount(beforeTip, tip);
   const notes = [service.note];
   if (feeInfo.memberApplied) notes.push("Membership toggle set the delivery or pickup fee to the member estimate.");
-  if (feeInfo.underMin) notes.push("Basket is under the $35 estimate, so a small-order fee is added.");
+  if (feeInfo.underMin) notes.push(`Basket is under the $${service.min} estimate, so a small-order fee is added.`);
   if (extraNote) notes.push(extraNote);
   return {
     name,

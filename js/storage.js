@@ -1,5 +1,6 @@
 import { itemById, presetById, cloneLines } from "../data/items.js";
 import { townById } from "../data/towns.js";
+import { DEFAULT_PER_MILE, GAS_PRICE } from "../data/gas.js";
 
 export const STORAGE_KEY = "shelfwise.v1";
 
@@ -18,7 +19,7 @@ export function defaultState() {
     loyalty: { foodlion: true, harristeeter: true, lowes: true, target: true, lidl: true },
     lines: cloneLines(presetById.family.lines),
     overrides: {},
-    drive: { mode: "mpg", mpg: 26, gasPrice: 4.11, roadFactor: 1.3, perMile: 0.158 },
+    drive: { mode: "mpg", mpg: 26, gasPrice: GAS_PRICE, roadFactor: 1.3, perMile: DEFAULT_PER_MILE },
     tip: "none",
     memberships: {
       walmartPlus: false,
@@ -90,9 +91,9 @@ export function sanitizeState(raw) {
     drive: {
       mode: raw.drive?.mode === "perMile" ? "perMile" : "mpg",
       mpg: numberOr(raw.drive?.mpg, 26),
-      gasPrice: numberOr(raw.drive?.gasPrice, 4.11),
+      gasPrice: numberOr(raw.drive?.gasPrice, GAS_PRICE),
       roadFactor: numberOr(raw.drive?.roadFactor, 1.3),
-      perMile: numberOr(raw.drive?.perMile, 0.158),
+      perMile: numberOr(raw.drive?.perMile, DEFAULT_PER_MILE),
     },
     tip: TIPS.has(raw.tip) ? raw.tip : "none",
     memberships: Object.fromEntries(MEMBER_IDS.map((id) => [id, Boolean(raw.memberships?.[id])])),
