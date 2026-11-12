@@ -4,6 +4,6 @@
   "type": "module",
   "description": "Static Piedmont Triad grocery comparison. No build step.",
   "scripts": {
-    "test": "node --test tests/calc.test.mjs"
+    "test": "node --test tests/*.test.mjs"
   }
 }

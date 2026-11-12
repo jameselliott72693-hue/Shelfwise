@@ -1,0 +1,3 @@
+EIA_API_KEY=paste-the-free-eia-key-here
+INSTACART_API_KEY=paste-the-instacart-developer-key-here
+INSTACART_API_BASE=https://connect.dev.instacart.tools

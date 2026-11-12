@@ -11,7 +11,7 @@
 import { chains, chainById } from "../data/stores.js";
 import { itemById } from "../data/items.js";
 import { prices, adFor } from "../data/prices.js";
-import { DEFAULT_PER_MILE, GAS_PRICE } from "../data/gas.js";
+import { pickCommunityPrice } from "./pool.js";
 
 export const QUALITY_RATE = 0.09;
 export const QUALITY_WEIGHT = { price: 0, balanced: 1, quality: 2 };
@@ -69,10 +69,10 @@ export function tripDistance(straight, roadFactor) {
 
 export function fuelCost(roundTripMiles, drive) {
   if (drive.mode === "perMile") {
-    return roundTripMiles * clamp(drive.perMile, 0, 5, DEFAULT_PER_MILE);
+    return roundTripMiles * clamp(drive.perMile, 0, 5, 0.158);
   }
   const mpg = clamp(drive.mpg, 5, 100, 26);
-  const gas = clamp(drive.gasPrice, 0, 20, GAS_PRICE);
+  const gas = clamp(drive.gasPrice, 0, 20, 4.11);
   return (roundTripMiles / mpg) * gas;
 }
 
@@ -81,6 +81,26 @@ export function quoteUnit(itemId, storeId, tier, options) {
   const override = options.overrides?.[storeId]?.[itemId]?.[tier];
   if (override != null && override !== "" && Number.isFinite(Number(override)) && Number(override) >= 0) {
     return { price: round2(Number(override)), source: "yours" };
+  }
+
+  const receipt = options.receipts?.[storeId]?.[itemId]?.[tier];
+  const receiptPrice = receipt && typeof receipt === "object" ? Number(receipt.price) : Number(receipt);
+  if (receipt != null && receipt !== "" && Number.isFinite(receiptPrice) && receiptPrice >= 0) {
+    const quoted = { price: round2(receiptPrice), source: "receipt" };
+    if (receipt && typeof receipt === "object" && receipt.date) quoted.asOf = receipt.date;
+    return quoted;
+  }
+
+  const today = options.today || new Date().toISOString().slice(0, 10);
+  const community = pickCommunityPrice(options.community, {
+    storeId,
+    itemId,
+    tier,
+    townId: options.townId || "",
+    today,
+  });
+  if (community) {
+    return { price: round2(community.price), source: "community", asOf: community.asOf, n: community.n };
   }
 
   const regular = prices[itemId]?.[storeId]?.[tier];
@@ -125,6 +145,8 @@ function scoreChain(chain, lines, options, origin) {
   let ads = 0;
   let cards = 0;
   let yours = 0;
+  let receiptCount = 0;
+  let communityCount = 0;
 
   for (const line of lines) {
     const entry = itemById[line.itemId];
@@ -144,6 +166,8 @@ function scoreChain(chain, lines, options, origin) {
     if (quote.source === "ad") ads += 1;
     if (quote.source === "card") cards += 1;
     if (quote.source === "yours") yours += 1;
+    if (quote.source === "receipt") receiptCount += 1;
+    if (quote.source === "community") communityCount += 1;
     priced.push({
       itemId: line.itemId,
       name: entry.name,
@@ -152,6 +176,8 @@ function scoreChain(chain, lines, options, origin) {
       department: entry.department,
       unit: quote.price,
       source: quote.source,
+      asOf: quote.asOf || null,
+      n: quote.n || 0,
       lineShelf,
       lineQuality,
     });
@@ -177,6 +203,8 @@ function scoreChain(chain, lines, options, origin) {
     ads,
     cards,
     yours,
+    receiptCount,
+    communityCount,
     qualityScores: chain.quality,
     qualityNote: chain.qualityNote,
   };
