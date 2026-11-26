@@ -18,7 +18,7 @@
 }
 
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; scroll-padding-top: calc(4.25rem + env(safe-area-inset-top)); }
 body {
   margin: 0;
   background: var(--paper);
@@ -320,7 +320,10 @@ dd { margin: 0.1rem 0 0; font-variant-numeric: tabular-nums; font-weight: 700; }
   border-radius: 12px;
   z-index: 6;
 }
-.jump-wrap { position: sticky; top: 0; z-index: 4; background: var(--paper); }
+.jump-wrap { position: sticky; top: env(safe-area-inset-top); z-index: 4; background: var(--paper); }
+#results, #store-list, #your-list, #receipt, #shelf-prices, #delivery, #drive {
+  scroll-margin-top: calc(4.25rem + env(safe-area-inset-top));
+}
 .jump {
   display: flex;
   gap: 0.35rem;
@@ -412,6 +415,20 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   .work { order: 1; }
   .split-groups { grid-template-columns: 1fr 1fr; }
   .fee dl { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+
+@media (max-width: 899px) {
+  #receipt {
+    position: relative;
+    z-index: 5;
+    background: var(--card);
+  }
+  #receipt input,
+  #receipt select,
+  #receipt textarea,
+  #receipt button {
+    scroll-margin-top: calc(4.75rem + env(safe-area-inset-top));
+  }
 }
 
 @media (max-width: 640px) {

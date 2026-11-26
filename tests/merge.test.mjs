@@ -65,9 +65,10 @@ test("a stale community price falls back to the weekly ad estimate", () => {
   const community = [{
     storeId: "foodlion", itemId: "chicken", tier: "store", price: 9.1, n: 4, asOf: "2026-09-01", town: null,
   }];
-  const quote = quoteUnit("chicken", "foodlion", "store", options({ community, today }));
+  const quote = quoteUnit("chicken", "foodlion", "store", options({ community, today: "2026-10-20" }));
   assert.equal(quote.source, "ad");
   assert.equal(quote.price, 8.79);
+  assert.equal(quote.asOf, "2026-10-18");
 });
 
 test("two fresh town reports beat the regional median", () => {

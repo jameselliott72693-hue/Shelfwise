@@ -10,7 +10,8 @@
 
 import { chains, chainById } from "../data/stores.js";
 import { itemById } from "../data/items.js";
-import { prices, adFor } from "../data/prices.js";
+import { prices, adFor, adCovers, PRICE_AS_OF } from "../data/prices.js";
+import { GAS_FALLBACK } from "../data/gas.js";
 import { pickCommunityPrice } from "./pool.js";
 
 export const QUALITY_RATE = 0.09;
@@ -72,7 +73,7 @@ export function fuelCost(roundTripMiles, drive) {
     return roundTripMiles * clamp(drive.perMile, 0, 5, 0.158);
   }
   const mpg = clamp(drive.mpg, 5, 100, 26);
-  const gas = clamp(drive.gasPrice, 0, 20, 4.11);
+  const gas = clamp(drive.gasPrice, 0, 20, GAS_FALLBACK.price);
   return (roundTripMiles / mpg) * gas;
 }
 
@@ -114,14 +115,13 @@ export function quoteUnit(itemId, storeId, tier, options) {
     estimateSource = "card";
   }
 
-  let adPrice = null;
-  if (options.weeklyAds && ad && (!ad.loyalty || cardOn)) adPrice = ad.price;
-
-  if (adPrice != null && (estimate == null || adPrice <= estimate)) {
-    return { price: round2(adPrice), source: "ad" };
+  if (options.weeklyAds && ad && adCovers(ad, today) && (!ad.loyalty || cardOn)) {
+    if (estimate == null || ad.price <= estimate) {
+      return { price: round2(ad.price), source: "ad", asOf: ad.asOf || PRICE_AS_OF };
+    }
   }
   if (estimate == null) return null;
-  return { price: estimate, source: estimateSource };
+  return { price: estimate, source: estimateSource, asOf: PRICE_AS_OF };
 }
 
 function emptyDepartments() {
@@ -217,8 +217,10 @@ function assignCost(quote, qty, chain, department, weight) {
   return { shelf, quality, score: shelf + quality };
 }
 
-function scorePair(left, right, lines, options, origin) {
+function scorePair(left, right, lines, options, tripsById) {
   const weight = QUALITY_WEIGHT[options.priority] ?? 1;
+  const leftTrip = tripsById[left.id];
+  const rightTrip = tripsById[right.id];
   const groups = {
     [left.id]: [],
     [right.id]: [],
@@ -244,13 +246,9 @@ function scorePair(left, right, lines, options, origin) {
       if (rightCost.score < leftCost.score - 0.001) {
         pick = right;
         quote = rightQuote;
-      } else if (Math.abs(rightCost.score - leftCost.score) <= 0.001) {
-        const leftDrive = fuelCost(tripDistance(nearestLocation(left, origin).straight, options.drive.roadFactor).roundTrip, options.drive);
-        const rightDrive = fuelCost(tripDistance(nearestLocation(right, origin).straight, options.drive.roadFactor).roundTrip, options.drive);
-        if (rightDrive < leftDrive) {
-          pick = right;
-          quote = rightQuote;
-        }
+      } else if (Math.abs(rightCost.score - leftCost.score) <= 0.001 && rightTrip.fuel < leftTrip.fuel) {
+        pick = right;
+        quote = rightQuote;
       }
     }
 
@@ -262,9 +260,7 @@ function scorePair(left, right, lines, options, origin) {
 
   if (groups[left.id].length === 0 || groups[right.id].length === 0) return null;
 
-  const leftTrip = tripDistance(nearestLocation(left, origin).straight, options.drive.roadFactor);
-  const rightTrip = tripDistance(nearestLocation(right, origin).straight, options.drive.roadFactor);
-  const drive = round2(fuelCost(leftTrip.roundTrip, options.drive) + fuelCost(rightTrip.roundTrip, options.drive));
+  const drive = round2(leftTrip.fuel + rightTrip.fuel);
   const shelf = fromCents(shelfCents);
   const quality = fromCents(qualityCents);
   const allIn = fromCents(cents(shelf) + cents(drive) + cents(quality));
@@ -273,8 +269,8 @@ function scorePair(left, right, lines, options, origin) {
     ids: [left.id, right.id],
     names: [left.name, right.name],
     groups: [
-      { id: left.id, name: left.name, items: groups[left.id], nearest: nearestLocation(left, origin), distance: leftTrip },
-      { id: right.id, name: right.name, items: groups[right.id], nearest: nearestLocation(right, origin), distance: rightTrip },
+      { id: left.id, name: left.name, items: groups[left.id], nearest: leftTrip.nearest, distance: leftTrip.distance },
+      { id: right.id, name: right.name, items: groups[right.id], nearest: rightTrip.nearest, distance: rightTrip.distance },
     ],
     shelf,
     drive,
@@ -283,11 +279,11 @@ function scorePair(left, right, lines, options, origin) {
   };
 }
 
-function bestSplit(lines, options, origin) {
+function bestSplit(lines, options, tripsById) {
   let best = null;
   for (let i = 0; i < chains.length; i += 1) {
     for (let j = i + 1; j < chains.length; j += 1) {
-      const pair = scorePair(chains[i], chains[j], lines, options, origin);
+      const pair = scorePair(chains[i], chains[j], lines, options, tripsById);
       if (!pair) continue;
       if (!best || pair.allIn < best.allIn) best = pair;
     }
@@ -303,6 +299,11 @@ export function scoreTrip(options) {
   }
 
   const stores = chains.map((chain) => scoreChain(chain, lines, options, origin));
+  const tripsById = Object.fromEntries(stores.map((store) => [store.id, {
+    nearest: store.nearest,
+    distance: store.distance,
+    fuel: fuelCost(store.distance.roundTrip, options.drive),
+  }]));
   stores.sort((a, b) => {
     if (a.complete !== b.complete) return a.complete ? -1 : 1;
     if (a.allIn !== b.allIn) return a.allIn - b.allIn;
@@ -313,7 +314,7 @@ export function scoreTrip(options) {
   const winner = complete[0] || null;
   const runnerUp = complete[1] || null;
   const priciest = complete.length ? complete[complete.length - 1] : null;
-  const pair = lines.length ? bestSplit(lines, options, origin) : null;
+  const pair = lines.length ? bestSplit(lines, options, tripsById) : null;
 
   let split = null;
   if (pair && winner) {

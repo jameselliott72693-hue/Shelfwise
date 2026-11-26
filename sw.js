@@ -1,4 +1,4 @@
-const CACHE = "shelfwise-shell-v3";
+const CACHE = "shelfwise-shell-v4";
 
 const SHELL = [
   "./",
@@ -54,8 +54,16 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(networkFirst(event.request, "./index.html"));
     return;
   }
+  if (isStaticAsset(url)) {
+    event.respondWith(staleWhileRevalidate(event, event.request));
+    return;
+  }
   event.respondWith(networkFirst(event.request));
 });
+
+function isStaticAsset(url) {
+  return /\.(?:png|webp|svg|ico|jpe?g|gif)$/i.test(url.pathname);
+}
 
 async function networkFirst(request, fallback) {
   const cache = await caches.open(CACHE);
@@ -68,4 +76,21 @@ async function networkFirst(request, fallback) {
   }
   const cached = (fallback && await cache.match(fallback)) || await cache.match(request) || await cache.match("./");
   return cached || new Response("Offline", { status: 503 });
+}
+
+async function staleWhileRevalidate(event, request) {
+  const cache = await caches.open(CACHE);
+  const cached = await cache.match(request);
+  const refresh = fetch(request, { cache: "no-cache", credentials: "same-origin" })
+    .then((response) => {
+      if (response && response.ok) cache.put(request, response.clone());
+      return response;
+    })
+    .catch(() => null);
+  if (cached) {
+    event.waitUntil(refresh.then(() => undefined));
+    return cached;
+  }
+  const fresh = await refresh;
+  return fresh || new Response("Offline", { status: 503 });
 }
