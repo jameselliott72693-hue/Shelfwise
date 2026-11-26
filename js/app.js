@@ -153,7 +153,7 @@ function view(origin, result) {
         <a href="#drive">Gas</a>
       </nav>
     </div>
-    <p class="disclaimer">Shelf lines are Triad estimates as of ${esc(PRICE_AS_OF_LABEL)} unless a tag says your receipt or a community date. Gas is the latest EIA weekly price on this phone. Fees are published estimates. Nothing is scraped.</p>
+    <p class="disclaimer">Shelf lines are Triad estimates as of ${esc(PRICE_AS_OF_LABEL)} unless a tag shows a weekly ad date, your receipt, or a community date. Gas is the latest EIA weekly price on this phone. Fees are published estimates. Nothing is scraped.</p>
     <div class="layout">
       <section class="results" id="results">
         ${winnerCard(origin, result)}

@@ -46,7 +46,7 @@ The site is a progressive web app. `manifest.json` and `sw.js` are at the reposi
 - **Android Chrome:** the install card can call the browser install prompt. You can also use the browser menu and choose Install app or Add to Home screen.
 - **iPhone Safari:** tap Share, then Add to Home Screen. iOS does not offer a one-tap install prompt to the page.
 - After that, Shelfwise opens full screen and the service worker serves the shell and bundled data when the phone is offline. The last list, pump price, receipt prices, and last community or EIA response stay in `localStorage`.
-- A new deploy is fetched with a cache-busting request. If a page is still running the previous copy when the new service worker takes over, Shelfwise shows **An update is ready** and a Reload button.
+- A new deploy reloads HTML, JS, and CSS. Icons are served from the last cached copy and refreshed in the background. If a page is still running the previous copy when the new service worker takes over, Shelfwise shows **An update is ready** and a Reload button. Relative paths keep that working under `/Shelfwise/`.
 
 ## GitHub Pages
 
@@ -128,7 +128,7 @@ Lowes Foods is based in Winston-Salem. The location list in `data/stores.js` is 
 - Eight ranked stores, with bars showing how close each all-in total is to the winner. Tap a store to price the whole list there.
 - **Every shelf price** accepts a typed replacement. Only prices you change are stored on this device. **Use estimates again** clears typed prices and receipt prices for that store. Community medians remain.
 - Preset lists: family week, breakfasts, cookout, pantry, and household. Add items, remove them, and change quantities. Each line is store brand, name brand, or premium. Filter the catalog by brand, including Cheerios, Duke's, Tide, and Coca-Cola.
-- Weekly ad estimates are on by default and labeled as estimates. A loyalty card unlocks that chain's ad and takes 5% off its store brands. A receipt or community price is used instead of the ad.
+- Weekly ad estimates are on by default and labeled with the circular date. A loyalty card unlocks that chain's ad and takes 5% off its store brands. An ad outside its `validThrough` date is skipped. A receipt or community price is used instead of the ad.
 - A split-trip card prices the list at two stores when the shelf savings beat the extra drive.
 - **Send list to Instacart** uses the worker when a key is configured. DoorDash and Uber Eats cannot import an outside cart. Those buttons copy the list and open that service's search. **Download list** saves a text file. **Copy share link** puts the list and trip settings in the URL hash. **Print** uses a print view. Edited prices, receipts, and community rows stay on the device and are not part of the link.
 - **Pickup and delivery** compares store pickup, store delivery, Instacart, DoorDash, Uber Eats, and Shipt. Each available row splits food, app markup, the delivery or pickup fee, and the service fee, and links the source. Tips are none, $5, or 10%. Membership toggles: Walmart+, Instacart+, DashPass, Uber One, Shipt (also the Target Circle 360 same-day estimate), and Lowes To Go.
@@ -143,9 +143,9 @@ For each item, store, and tier, in order:
 1. A price you typed.
 2. A price you confirmed from a receipt on this phone, with that receipt's date.
 3. A community median from the last 21 days, when one exists.
-4. The weekly ad estimate, when it is on and it is lower than the regular estimate.
+4. The weekly ad estimate, when it is on, the day is inside `asOf`–`validThrough`, and it is lower than the regular estimate. A row with no end date lasts seven days from `asOf`.
 5. The store-brand card estimate, 5% off, when that card is on.
-6. The bundled Triad estimate from October 18, 2026. Some weekly ads are later, when a public circular confirmed that package.
+6. The bundled Triad estimate from October 18, 2026.
 
 Each line shows which of those it used, and the date for estimates, receipts, and community prices. Community prices are a median. One town needs two fresh reports before its median replaces the regional one.
 
@@ -177,7 +177,7 @@ Fee figures are estimates reviewed November 10, 2026. Confirm them at checkout. 
 
 ## How to update prices
 
-All bundled shelf numbers flow from `data/prices.js`. After an edit, refresh the browser. There is no build. Bump the service worker cache name in `sw.js` (`CACHE`) when you change cached files. The worker then asks for those files with `cache: "reload"`, and an open tab shows **An update is ready**.
+All bundled shelf numbers flow from `data/prices.js`. After an edit, refresh the browser. There is no build. Bump the service worker cache name in `sw.js` (`CACHE`) when you change cached files. HTML, JS, and CSS are still fetched with `cache: "reload"`. Icons use stale-while-revalidate. An open tab shows **An update is ready**.
 
 1. Change `PRICE_AS_OF` and `PRICE_AS_OF_LABEL`.
 2. Move every store-brand shelf together with `STORE_FACTOR`, or national-brand shelves with `NATIONAL_FACTOR`.
@@ -189,7 +189,7 @@ All bundled shelf numbers flow from `data/prices.js`. After an edit, refresh the
    ```
 
    Use `null` for a tier a store does not carry.
-5. Replace `weeklyAds` for the new ad week. Each entry is an item, a store, a tier, a dollar price, and `loyalty: true` when the card has to be on. These are sale estimates, not a scanned circular.
+5. Replace `weeklyAds` for the new ad week. Each entry is an item, a store, a tier, a dollar price, `asOf`, `validThrough`, and `loyalty: true` when the card has to be on. These are sale estimates, not a scanned circular. Leave `validThrough` off only when a seven-day window from `asOf` is right.
 
 The bundled gas week is `data/gas.js`. Fee copy and links are `data/fees.js`. Quality scores and the location list are in `data/stores.js`. Town centers are in `data/towns.js`.
 

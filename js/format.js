@@ -48,7 +48,8 @@ export function sourceDetail(source, asOf, n) {
   }
   if (source === "receipt") return asOf ? `${label} · ${prettyDate(asOf)}` : label;
   if (source === "yours") return label;
-  return `${label} · ${PRICE_AS_OF_LABEL}`;
+  const dated = prettyDate(asOf) || PRICE_AS_OF_LABEL;
+  return `${label} · ${dated}`;
 }
 
 export function tierLabel(tier) {

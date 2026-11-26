@@ -1,7 +1,8 @@
 /**
  * Triad shelf estimates for comparable packages.
  * Factor shelves and cellOverrides are still October 18, 2026.
- * weeklyAds mix that date with later public circulars. Each ad has asOf.
+ * weeklyAds mix that date with later public circulars. Each ad has asOf
+ * and validThrough. quoteUnit ignores an ad outside that window.
  * Not live register prices.
  *
  * How a cell is built:
@@ -20,7 +21,7 @@ export const PRICE_AS_OF = "2026-10-18";
 export const PRICE_AS_OF_LABEL = "October 18, 2026";
 export const PRICE_REGION = "Piedmont Triad, North Carolina";
 export const PRICE_NOTE =
-  "Comparable-package estimates as of October 18, 2026. Weekly ads confirmed on a later public circular are dated November 11, 2026 for Aldi, Food Lion, Harris Teeter, Lidl, and Lowes Foods, and November 8, 2026 for Target. Not live register prices.";
+  "Comparable-package estimates as of October 18, 2026. Weekly ads confirmed on a later public circular run November 11–17, 2026 for Aldi, Food Lion, Harris Teeter, Lidl, and Lowes Foods, and November 8–14, 2026 for Target. Older October 18 circulars ended October 24, 2026. Not live register prices.";
 
 export const STORE_FACTOR = {
   aldi: 0.92,
@@ -64,76 +65,78 @@ export const cellOverrides = {
 
 /**
  * Sale prices. loyalty: true means the chain's card has to be on.
- * asOf is the circular date when one was checked, otherwise October 18, 2026.
- * Per-pound ads are converted to the catalog package weight.
- * Rows that do not undercut the October 18 estimate stay in the file and
- * do not change the quote. See quoteUnit.
+ * asOf is the first day of the circular. validThrough is the last day it
+ * is quoted. A row with no validThrough lasts seven days from asOf
+ * (PRICE_AS_OF when asOf is missing). Per-pound ads are converted to the
+ * catalog package weight. Rows that do not undercut the October 18 estimate
+ * stay in the file and do not change the quote. See quoteUnit.
  */
+export const WEEKLY_AD_DAYS = 7;
 export const weeklyAds = [
-  // October 18, 2026 estimates kept because this pass did not confirm a replacement.
-  { itemId: "chicken", storeId: "foodlion", tier: "store", price: 8.79, loyalty: true, asOf: "2026-10-18" },
-  { itemId: "coke", storeId: "foodlion", tier: "name", price: 6.99, loyalty: true, asOf: "2026-10-18" },
-  { itemId: "milk", storeId: "walmart", tier: "store", price: 2.97, loyalty: false, asOf: "2026-10-18" },
-  { itemId: "cereal", storeId: "walmart", tier: "name", price: 3.48, loyalty: false, asOf: "2026-10-18" },
-  { itemId: "beef", storeId: "harristeeter", tier: "store", price: 8.98, loyalty: true, asOf: "2026-10-18" },
-  { itemId: "salad", storeId: "harristeeter", tier: "store", price: 2.5, loyalty: true, asOf: "2026-10-18" },
-  { itemId: "bacon", storeId: "lowes", tier: "store", price: 4.99, loyalty: true, asOf: "2026-10-18" },
-  { itemId: "towels", storeId: "target", tier: "store", price: 5.49, loyalty: true, asOf: "2026-10-18" },
-  { itemId: "detergent", storeId: "target", tier: "name", price: 11.99, loyalty: true, asOf: "2026-10-18" },
-  { itemId: "bread", storeId: "lidl", tier: "store", price: 1.25, loyalty: true, asOf: "2026-10-18" },
-  { itemId: "bananas", storeId: "lidl", tier: "store", price: 1.29, loyalty: false, asOf: "2026-10-18" },
-  { itemId: "pork", storeId: "publix", tier: "store", price: 6.98, loyalty: false, asOf: "2026-10-18" },
-  { itemId: "eggs", storeId: "aldi", tier: "store", price: 1.99, loyalty: false, asOf: "2026-10-18" },
+  // October 18–24, 2026. Kept because this pass did not confirm a replacement circular.
+  { itemId: "chicken", storeId: "foodlion", tier: "store", price: 8.79, loyalty: true, asOf: "2026-10-18", validThrough: "2026-10-24" },
+  { itemId: "coke", storeId: "foodlion", tier: "name", price: 6.99, loyalty: true, asOf: "2026-10-18", validThrough: "2026-10-24" },
+  { itemId: "milk", storeId: "walmart", tier: "store", price: 2.97, loyalty: false, asOf: "2026-10-18", validThrough: "2026-10-24" },
+  { itemId: "cereal", storeId: "walmart", tier: "name", price: 3.48, loyalty: false, asOf: "2026-10-18", validThrough: "2026-10-24" },
+  { itemId: "beef", storeId: "harristeeter", tier: "store", price: 8.98, loyalty: true, asOf: "2026-10-18", validThrough: "2026-10-24" },
+  { itemId: "salad", storeId: "harristeeter", tier: "store", price: 2.5, loyalty: true, asOf: "2026-10-18", validThrough: "2026-10-24" },
+  { itemId: "bacon", storeId: "lowes", tier: "store", price: 4.99, loyalty: true, asOf: "2026-10-18", validThrough: "2026-10-24" },
+  { itemId: "towels", storeId: "target", tier: "store", price: 5.49, loyalty: true, asOf: "2026-10-18", validThrough: "2026-10-24" },
+  { itemId: "detergent", storeId: "target", tier: "name", price: 11.99, loyalty: true, asOf: "2026-10-18", validThrough: "2026-10-24" },
+  { itemId: "bread", storeId: "lidl", tier: "store", price: 1.25, loyalty: true, asOf: "2026-10-18", validThrough: "2026-10-24" },
+  { itemId: "bananas", storeId: "lidl", tier: "store", price: 1.29, loyalty: false, asOf: "2026-10-18", validThrough: "2026-10-24" },
+  { itemId: "pork", storeId: "publix", tier: "store", price: 6.98, loyalty: false, asOf: "2026-10-18", validThrough: "2026-10-24" },
+  { itemId: "eggs", storeId: "aldi", tier: "store", price: 1.99, loyalty: false, asOf: "2026-10-18", validThrough: "2026-10-24" },
 
   // Aldi weekly ad, November 11–17, 2026.
-  { itemId: "apples", storeId: "aldi", tier: "store", price: 1.99, loyalty: false, asOf: "2026-11-11" },
-  { itemId: "butter", storeId: "aldi", tier: "store", price: 1.99, loyalty: false, asOf: "2026-11-11" },
+  { itemId: "apples", storeId: "aldi", tier: "store", price: 1.99, loyalty: false, asOf: "2026-11-11", validThrough: "2026-11-17" },
+  { itemId: "butter", storeId: "aldi", tier: "store", price: 1.99, loyalty: false, asOf: "2026-11-11", validThrough: "2026-11-17" },
   // Fresh chicken breasts $1.69/lb × the 3 lb package.
-  { itemId: "chicken", storeId: "aldi", tier: "store", price: 5.07, loyalty: false, asOf: "2026-11-11" },
+  { itemId: "chicken", storeId: "aldi", tier: "store", price: 5.07, loyalty: false, asOf: "2026-11-11", validThrough: "2026-11-17" },
 
   // Lidl weekly ad, November 11–17, 2026.
-  { itemId: "potatoes", storeId: "lidl", tier: "store", price: 2.29, loyalty: false, asOf: "2026-11-11" },
-  { itemId: "onions", storeId: "lidl", tier: "store", price: 1.49, loyalty: false, asOf: "2026-11-11" },
+  { itemId: "potatoes", storeId: "lidl", tier: "store", price: 2.29, loyalty: false, asOf: "2026-11-11", validThrough: "2026-11-17" },
+  { itemId: "onions", storeId: "lidl", tier: "store", price: 1.49, loyalty: false, asOf: "2026-11-11", validThrough: "2026-11-17" },
   // Tomatoes on the vine $1.49/lb × the 1 lb package.
-  { itemId: "tomato", storeId: "lidl", tier: "store", price: 1.49, loyalty: false, asOf: "2026-11-11" },
+  { itemId: "tomato", storeId: "lidl", tier: "store", price: 1.49, loyalty: false, asOf: "2026-11-11", validThrough: "2026-11-17" },
   // Store stock or broth, 12–32 oz, 99¢. Lidl Plus mark on the price.
-  { itemId: "broth", storeId: "lidl", tier: "store", price: 0.99, loyalty: true, asOf: "2026-11-11" },
+  { itemId: "broth", storeId: "lidl", tier: "store", price: 0.99, loyalty: true, asOf: "2026-11-11", validThrough: "2026-11-17" },
 
   // Food Lion weekly ad, November 11–17, 2026. MVP prices unless noted.
   // 80% lean fresh ground chuck $5.79/lb × the 2 lb package. Replaces the October 18 ad.
-  { itemId: "beef", storeId: "foodlion", tier: "store", price: 11.58, loyalty: true, asOf: "2026-11-11" },
+  { itemId: "beef", storeId: "foodlion", tier: "store", price: 11.58, loyalty: true, asOf: "2026-11-11", validThrough: "2026-11-17" },
   // Bone-in pork chops $3.49/lb × the 2 lb package.
-  { itemId: "pork", storeId: "foodlion", tier: "store", price: 6.98, loyalty: true, asOf: "2026-11-11" },
+  { itemId: "pork", storeId: "foodlion", tier: "store", price: 6.98, loyalty: true, asOf: "2026-11-11", validThrough: "2026-11-17" },
   // Butter quarters, 16 oz. The each price without the card is $2.99. The 2-for-$5 deal needs two.
-  { itemId: "butter", storeId: "foodlion", tier: "store", price: 2.99, loyalty: false, asOf: "2026-11-11" },
+  { itemId: "butter", storeId: "foodlion", tier: "store", price: 2.99, loyalty: false, asOf: "2026-11-11", validThrough: "2026-11-17" },
   // Bush's beans, 15–16 oz, $1 with MVP.
-  { itemId: "beans", storeId: "foodlion", tier: "name", price: 1, loyalty: true, asOf: "2026-11-11" },
+  { itemId: "beans", storeId: "foodlion", tier: "name", price: 1, loyalty: true, asOf: "2026-11-11", validThrough: "2026-11-17" },
   // Swanson broth, 32 oz, $2 with MVP.
-  { itemId: "broth", storeId: "foodlion", tier: "name", price: 2, loyalty: true, asOf: "2026-11-11" },
+  { itemId: "broth", storeId: "foodlion", tier: "name", price: 2, loyalty: true, asOf: "2026-11-11", validThrough: "2026-11-17" },
   // Prego, 23.5–24 oz. Each price without the card is $3.29. Higher than the October 18 estimate.
-  { itemId: "sauce", storeId: "foodlion", tier: "name", price: 3.29, loyalty: false, asOf: "2026-11-11" },
+  { itemId: "sauce", storeId: "foodlion", tier: "name", price: 3.29, loyalty: false, asOf: "2026-11-11", validThrough: "2026-11-17" },
   // Reynolds Wrap, 50–75 sq ft, $5.99 with MVP. Higher than the October 18 estimate.
-  { itemId: "foil", storeId: "foodlion", tier: "name", price: 5.99, loyalty: true, asOf: "2026-11-11" },
+  { itemId: "foil", storeId: "foodlion", tier: "name", price: 5.99, loyalty: true, asOf: "2026-11-11", validThrough: "2026-11-17" },
 
   // Harris Teeter weekly ad, November 11–17, 2026. VIC prices.
   // Boneless chicken breasts $1.99/lb × the 3 lb package.
-  { itemId: "chicken", storeId: "harristeeter", tier: "store", price: 5.97, loyalty: true, asOf: "2026-11-11" },
+  { itemId: "chicken", storeId: "harristeeter", tier: "store", price: 5.97, loyalty: true, asOf: "2026-11-11", validThrough: "2026-11-17" },
   // Nature's Own butter bread or sourdough, 20 oz, $2.99 with VIC.
-  { itemId: "bread", storeId: "harristeeter", tier: "name", price: 2.99, loyalty: true, asOf: "2026-11-11" },
+  { itemId: "bread", storeId: "harristeeter", tier: "name", price: 2.99, loyalty: true, asOf: "2026-11-11", validThrough: "2026-11-17" },
   // Store foil, 75 sq ft option, $4.29 with VIC. Higher than the October 18 estimate.
-  { itemId: "foil", storeId: "harristeeter", tier: "store", price: 4.29, loyalty: true, asOf: "2026-11-11" },
+  { itemId: "foil", storeId: "harristeeter", tier: "store", price: 4.29, loyalty: true, asOf: "2026-11-11", validThrough: "2026-11-17" },
 
   // Lowes Foods weekly ad, November 11–17, 2026.
   // Boneless skinless chicken breast, family pack, $2.99/lb × the 3 lb package.
-  { itemId: "chicken", storeId: "lowes", tier: "store", price: 8.97, loyalty: false, asOf: "2026-11-11" },
+  { itemId: "chicken", storeId: "lowes", tier: "store", price: 8.97, loyalty: false, asOf: "2026-11-11", validThrough: "2026-11-17" },
   // Store broth, selected 32 oz, $1.79 each.
-  { itemId: "broth", storeId: "lowes", tier: "store", price: 1.79, loyalty: false, asOf: "2026-11-11" },
+  { itemId: "broth", storeId: "lowes", tier: "store", price: 1.79, loyalty: false, asOf: "2026-11-11", validThrough: "2026-11-17" },
   // Store coffee, selected 10–12 oz, $6.99 each. Higher than the October 18 estimate.
-  { itemId: "coffee", storeId: "lowes", tier: "store", price: 6.99, loyalty: false, asOf: "2026-11-11" },
+  { itemId: "coffee", storeId: "lowes", tier: "store", price: 6.99, loyalty: false, asOf: "2026-11-11", validThrough: "2026-11-17" },
 
   // Target weekly circular, November 8–14, 2026.
   // Good & Gather orange juice, 52 oz, $4.19. Higher than the October 18 estimate.
-  { itemId: "oj", storeId: "target", tier: "store", price: 4.19, loyalty: false, asOf: "2026-11-08" },
+  { itemId: "oj", storeId: "target", tier: "store", price: 4.19, loyalty: false, asOf: "2026-11-08", validThrough: "2026-11-14" },
 ];
 
 function round2(value) {
@@ -167,6 +170,29 @@ export function buildPrices() {
 }
 
 export const prices = buildPrices();
+
+const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+export function shiftIsoDate(iso, days) {
+  const match = ISO_DATE.exec(iso || "");
+  if (!match) return "";
+  const utc = Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]) + days);
+  return new Date(utc).toISOString().slice(0, 10);
+}
+
+/** Last day an ad is quoted. Missing validThrough means a seven-day circular. */
+export function adValidThrough(ad) {
+  if (ISO_DATE.test(ad?.validThrough || "")) return ad.validThrough;
+  const start = ISO_DATE.test(ad?.asOf || "") ? ad.asOf : PRICE_AS_OF;
+  return shiftIsoDate(start, WEEKLY_AD_DAYS - 1);
+}
+
+export function adCovers(ad, today) {
+  if (!ad || !ISO_DATE.test(today || "")) return false;
+  const start = ISO_DATE.test(ad.asOf || "") ? ad.asOf : PRICE_AS_OF;
+  const through = adValidThrough(ad);
+  return Boolean(through) && today >= start && today <= through;
+}
 
 export function adFor(itemId, storeId, tier) {
   return weeklyAds.find((ad) => ad.itemId === itemId && ad.storeId === storeId && ad.tier === tier) || null;
