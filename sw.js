@@ -1,4 +1,4 @@
-const CACHE = "shelfwise-shell-v3";
+const CACHE = "shelfwise-shell-v4";
 
 const SHELL = [
   "./",
@@ -54,8 +54,19 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(networkFirst(event.request, "./index.html"));
     return;
   }
-  event.respondWith(networkFirst(event.request));
+  if (keepFresh(url)) {
+    event.respondWith(networkFirst(event.request));
+    return;
+  }
+  event.respondWith(staleWhileRevalidate(event, event.request));
 });
+
+function keepFresh(url) {
+  const path = url.pathname;
+  return path.endsWith(".html")
+    || path.endsWith("/data/prices.js")
+    || path.endsWith("/data/gas.js");
+}
 
 async function networkFirst(request, fallback) {
   const cache = await caches.open(CACHE);
@@ -68,4 +79,22 @@ async function networkFirst(request, fallback) {
   }
   const cached = (fallback && await cache.match(fallback)) || await cache.match(request) || await cache.match("./");
   return cached || new Response("Offline", { status: 503 });
+}
+
+async function staleWhileRevalidate(event, request) {
+  const cache = await caches.open(CACHE);
+  const cached = await cache.match(request);
+  const refresh = fetch(request, { credentials: "same-origin" })
+    .then((response) => {
+      if (response && response.ok) cache.put(request, response.clone());
+      return response;
+    })
+    .catch(() => null);
+  if (cached) {
+    event.waitUntil(refresh);
+    return cached;
+  }
+  const fresh = await refresh;
+  if (fresh && (fresh.ok || fresh.type === "opaqueredirect")) return fresh;
+  return new Response("Offline", { status: 503 });
 }

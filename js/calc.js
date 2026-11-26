@@ -10,13 +10,16 @@
 
 import { chains, chainById } from "../data/stores.js";
 import { itemById } from "../data/items.js";
-import { prices, adFor } from "../data/prices.js";
-import { pickCommunityPrice } from "./pool.js";
+import { prices, adFor, PRICE_AS_OF } from "../data/prices.js";
+import { GAS_FALLBACK } from "../data/gas.js";
+import { ageDays, pickCommunityPrice } from "./pool.js";
 
 export const QUALITY_RATE = 0.09;
 export const QUALITY_WEIGHT = { price: 0, balanced: 1, quality: 2 };
 export const CARD_RATE = 0.05;
 export const SPLIT_MIN_SAVE = 1.5;
+export const AD_FRESH_DAYS = 7;
+export const BUDGET_SWAP_LIMIT = 5;
 
 export const MODE_LABEL = {
   price: "Price only",
@@ -67,12 +70,18 @@ export function tripDistance(straight, roadFactor) {
   return { straight, factor, oneWay, roundTrip: oneWay * 2 };
 }
 
+export function adIsExpired(asOf, today, days = AD_FRESH_DAYS) {
+  const age = ageDays(asOf, today);
+  if (age == null) return true;
+  return age > days;
+}
+
 export function fuelCost(roundTripMiles, drive) {
   if (drive.mode === "perMile") {
     return roundTripMiles * clamp(drive.perMile, 0, 5, 0.158);
   }
   const mpg = clamp(drive.mpg, 5, 100, 26);
-  const gas = clamp(drive.gasPrice, 0, 20, 4.11);
+  const gas = clamp(drive.gasPrice, 0, 20, GAS_FALLBACK.price);
   return (roundTripMiles / mpg) * gas;
 }
 
@@ -114,14 +123,19 @@ export function quoteUnit(itemId, storeId, tier, options) {
     estimateSource = "card";
   }
 
-  let adPrice = null;
-  if (options.weeklyAds && ad && (!ad.loyalty || cardOn)) adPrice = ad.price;
+  const adEligible = Boolean(options.weeklyAds && ad && (!ad.loyalty || cardOn));
+  const expired = adEligible && adIsExpired(ad.asOf, today);
+  const adPrice = adEligible && !expired ? ad.price : null;
 
   if (adPrice != null && (estimate == null || adPrice <= estimate)) {
-    return { price: round2(adPrice), source: "ad" };
+    return { price: round2(adPrice), source: "ad", asOf: ad.asOf };
   }
   if (estimate == null) return null;
-  return { price: estimate, source: estimateSource };
+  const quoted = { price: estimate, source: estimateSource, asOf: PRICE_AS_OF };
+  if (expired && ad.price != null && ad.price <= estimate) {
+    quoted.expiredAd = { price: round2(ad.price), asOf: ad.asOf || null };
+  }
+  return quoted;
 }
 
 function emptyDepartments() {
@@ -143,6 +157,7 @@ function scoreChain(chain, lines, options, origin) {
   let shelfCents = 0;
   let qualityCents = 0;
   let ads = 0;
+  let expiredAds = 0;
   let cards = 0;
   let yours = 0;
   let receiptCount = 0;
@@ -164,6 +179,7 @@ function scoreChain(chain, lines, options, origin) {
     departments[entry.department].shelf = round2(departments[entry.department].shelf + lineShelf);
     departments[entry.department].quality = round2(departments[entry.department].quality + lineQuality);
     if (quote.source === "ad") ads += 1;
+    if (quote.expiredAd) expiredAds += 1;
     if (quote.source === "card") cards += 1;
     if (quote.source === "yours") yours += 1;
     if (quote.source === "receipt") receiptCount += 1;
@@ -177,6 +193,7 @@ function scoreChain(chain, lines, options, origin) {
       unit: quote.price,
       source: quote.source,
       asOf: quote.asOf || null,
+      expiredAd: quote.expiredAd || null,
       n: quote.n || 0,
       lineShelf,
       lineQuality,
@@ -201,6 +218,7 @@ function scoreChain(chain, lines, options, origin) {
     quality,
     allIn,
     ads,
+    expiredAds,
     cards,
     yours,
     receiptCount,
@@ -329,6 +347,102 @@ export function scoreTrip(options) {
   }
 
   return { stores, winner, runnerUp, priciest, split };
+}
+
+export function budgetPlan(result, lines, quoteOptions, cap, limit = BUDGET_SWAP_LIMIT) {
+  const amount = Number(cap);
+  const active = Number.isFinite(amount) && amount > 0;
+  const winner = result?.winner || null;
+  const empty = {
+    active,
+    cap: active ? round2(amount) : null,
+    basket: winner ? winner.shelf : null,
+    over: false,
+    gap: 0,
+    swaps: [],
+    storeId: winner?.id || null,
+    storeName: winner?.name || "",
+    stackedSave: 0,
+    stackedCount: 0,
+    underAfterSwaps: false,
+    shelfAfterSwaps: winner ? winner.shelf : null,
+    stillOver: 0,
+  };
+  if (!active || !winner) return empty;
+
+  const basket = winner.shelf;
+  const gap = round2(basket - amount);
+  if (gap <= 0.009) {
+    return { ...empty, basket, over: false, gap: 0, shelfAfterSwaps: basket };
+  }
+
+  const swaps = [];
+  for (const line of lines || []) {
+    if (!line || line.tier === "store") continue;
+    const entry = itemById[line.itemId];
+    if (!entry) continue;
+    const current = quoteUnit(line.itemId, winner.id, line.tier, quoteOptions);
+    const storeBrand = quoteUnit(line.itemId, winner.id, "store", quoteOptions);
+    if (!current || !storeBrand) continue;
+    const savings = round2(current.price * line.qty - storeBrand.price * line.qty);
+    if (savings <= 0.009) continue;
+    swaps.push({
+      kind: "brand",
+      itemId: line.itemId,
+      name: entry.name,
+      qty: line.qty,
+      fromTier: line.tier,
+      toTier: "store",
+      savings,
+      storeId: winner.id,
+      storeName: winner.name,
+    });
+  }
+
+  if (result.split && result.split.shelfSave > 0.009) {
+    swaps.push({
+      kind: "split",
+      itemId: null,
+      name: result.split.names.join(" + "),
+      qty: null,
+      fromTier: null,
+      toTier: null,
+      savings: result.split.shelfSave,
+      storeId: null,
+      storeName: result.split.names.join(" + "),
+      extraDrive: result.split.extraDrive,
+      allInNet: result.split.net,
+      names: result.split.names.slice(),
+    });
+  }
+
+  swaps.sort((a, b) => b.savings - a.savings || String(a.name).localeCompare(String(b.name)));
+  const top = swaps.slice(0, Math.max(1, Math.min(5, limit)));
+
+  let stacked = 0;
+  let stackedCount = 0;
+  for (const swap of top) {
+    if (swap.kind !== "brand") continue;
+    stacked = round2(stacked + swap.savings);
+    stackedCount += 1;
+    if (stacked + 0.001 >= gap) break;
+  }
+
+  return {
+    active: true,
+    cap: round2(amount),
+    basket,
+    over: true,
+    gap,
+    swaps: top,
+    storeId: winner.id,
+    storeName: winner.name,
+    stackedSave: stacked,
+    stackedCount,
+    underAfterSwaps: stacked + 0.001 >= gap,
+    shelfAfterSwaps: round2(basket - stacked),
+    stillOver: round2(Math.max(0, gap - stacked)),
+  };
 }
 
 export function qualityWord(score) {

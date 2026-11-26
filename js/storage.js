@@ -39,6 +39,8 @@ export function defaultState() {
     communityRows: [],
     liveGas: null,
     installDismissed: false,
+    budgetOn: false,
+    budgetCap: 150,
     tip: "none",
     memberships: {
       walmartPlus: false,
@@ -203,12 +205,20 @@ export function sanitizeState(raw) {
     communityRows: cleanCommunity(raw.communityRows),
     liveGas: cleanLiveGas(raw.liveGas),
     installDismissed: Boolean(raw.installDismissed),
+    budgetOn: raw.budgetOn === true,
+    budgetCap: cleanBudget(raw.budgetCap),
     tip: TIPS.has(raw.tip) ? raw.tip : "none",
     memberships: Object.fromEntries(MEMBER_IDS.map((id) => [id, Boolean(raw.memberships?.[id])])),
     selectedStoreId: typeof raw.selectedStoreId === "string" ? raw.selectedStoreId : null,
     editorStoreId: typeof raw.editorStoreId === "string" ? raw.editorStoreId : null,
     editorAll: Boolean(raw.editorAll),
   };
+}
+
+function cleanBudget(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number <= 0 || number > 2000) return 150;
+  return Math.round(number * 100) / 100;
 }
 
 function numberOr(value, fallback) {
@@ -240,6 +250,8 @@ export function saveState(state) {
     communityRows: state.communityRows,
     liveGas: state.liveGas,
     installDismissed: Boolean(state.installDismissed),
+    budgetOn: state.budgetOn === true,
+    budgetCap: cleanBudget(state.budgetCap),
     tip: state.tip,
     memberships: state.memberships,
     selectedStoreId: state.selectedStoreId,
@@ -260,6 +272,7 @@ export function encodeShare(state) {
     drive: state.drive,
     tip: state.tip,
     members: state.memberships,
+    budget: state.budgetOn ? Math.round(Number(state.budgetCap) * 100) / 100 : 0,
     lines: state.lines.map((line) => [line.itemId, line.qty, line.tier]),
   };
   const bytes = new TextEncoder().encode(JSON.stringify(payload));
@@ -288,6 +301,8 @@ export function decodeShare(hash) {
       drive: data.drive,
       tip: data.tip,
       memberships: data.members,
+      budgetOn: Number(data.budget) > 0,
+      budgetCap: Number(data.budget) > 0 ? Number(data.budget) : 150,
     });
   } catch {
     return null;

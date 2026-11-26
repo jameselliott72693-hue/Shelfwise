@@ -67,7 +67,8 @@ export const cellOverrides = {
  * asOf is the circular date when one was checked, otherwise October 18, 2026.
  * Per-pound ads are converted to the catalog package weight.
  * Rows that do not undercut the October 18 estimate stay in the file and
- * do not change the quote. See quoteUnit.
+ * do not change the quote. An ad more than 7 days older than today is
+ * left out of the total. See quoteUnit.
  */
 export const weeklyAds = [
   // October 18, 2026 estimates kept because this pass did not confirm a replacement.
@@ -168,6 +169,28 @@ export function buildPrices() {
 
 export const prices = buildPrices();
 
+function adKey(itemId, storeId, tier) {
+  return `${itemId}\0${storeId}\0${tier}`;
+}
+
+/** Newest asOf wins when the same item, store, and tier appear more than once. */
+export function indexAds(rows) {
+  const index = new Map();
+  for (const ad of rows || []) {
+    if (!ad) continue;
+    const key = adKey(ad.itemId, ad.storeId, ad.tier);
+    const current = index.get(key);
+    if (!current || String(ad.asOf || "") >= String(current.asOf || "")) index.set(key, ad);
+  }
+  return index;
+}
+
+const weeklyAdIndex = indexAds(weeklyAds);
+
 export function adFor(itemId, storeId, tier) {
-  return weeklyAds.find((ad) => ad.itemId === itemId && ad.storeId === storeId && ad.tier === tier) || null;
+  return weeklyAdIndex.get(adKey(itemId, storeId, tier)) || null;
+}
+
+export function newestAd(rows, itemId, storeId, tier) {
+  return indexAds(rows).get(adKey(itemId, storeId, tier)) || null;
 }
