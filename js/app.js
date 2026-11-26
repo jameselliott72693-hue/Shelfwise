@@ -4,7 +4,8 @@ import { items, itemById, aisles, presets, presetById, brandOptions, brandLabel,
 import { PRICE_AS_OF_LABEL } from "../data/prices.js";
 import { FEE_NOTE, MEMBERSHIPS, deliveryRows } from "../data/fees.js";
 import { GAS_FALLBACK } from "../data/gas.js";
-import { scoreTrip, quoteUnit, MODE_LABEL, QUALITY_RATE, qualityWord, SPLIT_MIN_SAVE } from "./calc.js";
+import { scoreTrip, quoteUnit, budgetPlan, MODE_LABEL, QUALITY_RATE, qualityWord, SPLIT_MIN_SAVE, AD_FRESH_DAYS } from "./calc.js";
+import { ageDays } from "./pool.js";
 import { money, miles, esc, sourceDetail, tierLabel, listText, prettyDate } from "./format.js";
 import { loadState, saveState, encodeShare, decodeShare, deviceSession } from "./storage.js";
 import { effectiveGas } from "./gas.js";
@@ -38,6 +39,8 @@ if (shared) {
     drive: shared.drive,
     tip: shared.tip,
     memberships: shared.memberships,
+    budgetOn: shared.budgetOn,
+    budgetCap: shared.budgetCap,
   };
 }
 
@@ -153,10 +156,11 @@ function view(origin, result) {
         <a href="#drive">Gas</a>
       </nav>
     </div>
-    <p class="disclaimer">Shelf lines are Triad estimates as of ${esc(PRICE_AS_OF_LABEL)} unless a tag says your receipt or a community date. Gas is the latest EIA weekly price on this phone. Fees are published estimates. Nothing is scraped.</p>
+    <p class="disclaimer">Shelf lines are Triad estimates as of ${esc(PRICE_AS_OF_LABEL)} unless a tag says your receipt, a community date, or an ad date. Weekly ads older than 7 days are marked expired and left out of the total. Gas is the latest EIA weekly price on this phone. Fees are published estimates. Nothing is scraped.</p>
     <div class="layout">
       <section class="results" id="results">
         ${winnerCard(origin, result)}
+        ${budgetCard(origin, result)}
         ${rankList(result)}
         ${splitCard(result)}
       </section>
@@ -205,6 +209,16 @@ function toolbar(origin) {
         <input type="checkbox" data-action="ads" ${state.weeklyAds ? "checked" : ""}>
         Weekly ad estimates
       </label>
+      <div class="toolbar-row budget-row">
+        <label class="check">
+          <input type="checkbox" data-action="budget" ${state.budgetOn ? "checked" : ""}>
+          Weekly budget cap
+        </label>
+        <label class="field field-compact">
+          <span>Cap per week</span>
+          <input id="budget-cap" inputmode="decimal" data-action="budget-cap" value="${esc(state.budgetCap)}" aria-label="Weekly budget cap in dollars">
+        </label>
+      </div>
       <details class="loyalty">
         <summary>${LOYALTY.filter((card) => state.loyalty[card.id]).length} loyalty cards on · store brand −5% and that store's ad</summary>
         <div class="checks">
@@ -275,6 +289,7 @@ function whyText(origin, result) {
   if (winner.receiptCount) used.push(`${winner.receiptCount} from your receipts`);
   if (winner.communityCount) used.push(`${winner.communityCount} community price${winner.communityCount === 1 ? "" : "s"}`);
   if (winner.ads) used.push(`${winner.ads} ad estimate${winner.ads === 1 ? "" : "s"}`);
+  if (winner.expiredAds) parts.push(`${winner.expiredAds} weekly ad${winner.expiredAds === 1 ? " is" : "s are"} older than 7 days, so ${winner.expiredAds === 1 ? "it is" : "they are"} not in the shelf.`);
   if (winner.cards) used.push(`${winner.cards} store-brand card cut${winner.cards === 1 ? "" : "s"}`);
   if (winner.yours) used.push(`${winner.yours} price${winner.yours === 1 ? "" : "s"} you edited`);
   if (used.length) parts.push(`The shelf includes ${used.join(", ")}.`);
@@ -366,6 +381,85 @@ function splitCard(result) {
   `;
 }
 
+function budgetCard(origin, result) {
+  if (!state.budgetOn) return "";
+  const plan = budgetPlan(result, state.lines, tripOptions(origin), state.budgetCap);
+  if (!plan.active || plan.basket == null) {
+    return `
+      <section class="card" id="budget">
+        <h2>Weekly budget</h2>
+        <p>Set a cap after a store can fill the list.</p>
+      </section>
+    `;
+  }
+  if (!plan.over) {
+    return `
+      <section class="card" id="budget">
+        <h2>Weekly budget</h2>
+        <p>${esc(plan.storeName)} shelf is ${money(plan.basket)}, under the ${money(plan.cap)} weekly cap.</p>
+      </section>
+    `;
+  }
+  const swaps = plan.swaps.map((swap) => {
+    if (swap.kind === "split") {
+      return `
+        <li>
+          <span>
+            <strong>${esc(swap.name)}</strong>
+            <span class="hint">Two-store split · save ${money(swap.savings)} on the shelf${swap.extraDrive ? ` · extra drive ${money(swap.extraDrive)}` : ""}</span>
+          </span>
+        </li>
+      `;
+    }
+    return `
+      <li>
+        <span>
+          <strong>${swap.qty} × ${esc(swap.name)}</strong>
+          <span class="hint">${esc(tierLabel(swap.fromTier))} → store brand at ${esc(swap.storeName)} · save ${money(swap.savings)}</span>
+        </span>
+        <button type="button" class="button" data-action="apply-swap" data-item="${esc(swap.itemId)}" data-from="${esc(swap.fromTier)}">Use store brand</button>
+      </li>
+    `;
+  }).join("");
+  const swapWord = plan.stackedCount === 1 ? "This store-brand swap saves" : `The top ${plan.stackedCount} store-brand swaps save`;
+  const bring = plan.stackedCount === 1 ? "brings" : "bring";
+  let summary = "No store-brand swap or two-store split lowers this shelf.";
+  if (plan.stackedCount) {
+    summary = plan.underAfterSwaps
+      ? `${swapWord} ${money(plan.stackedSave)} and ${bring} the shelf to ${money(plan.shelfAfterSwaps)}, under the cap.`
+      : `${swapWord} ${money(plan.stackedSave)} and ${bring} the shelf to ${money(plan.shelfAfterSwaps)}, still ${money(plan.stillOver)} over.`;
+  } else if (plan.swaps.length) {
+    summary = "A second stop is the larger shelf saving. Store-brand swaps on this list do not lower it.";
+  }
+  const splitNote = plan.swaps.some((swap) => swap.kind === "split")
+    ? " A split is a separate trip. Its savings are not added to the store-brand swaps."
+    : "";
+  return `
+    <section class="card" id="budget">
+      <h2>Weekly budget</h2>
+      <p>${esc(plan.storeName)} shelf is ${money(plan.basket)}, ${money(plan.gap)} over the ${money(plan.cap)} weekly cap.</p>
+      ${plan.swaps.length ? `<ol class="budget-swaps">${swaps}</ol>` : ""}
+      <p class="hint">${esc(summary)}${splitNote}</p>
+    </section>
+  `;
+}
+
+function quoteBadges(row, today) {
+  const badges = [`<span class="tag tag-${row.source}">${esc(sourceDetail(row.source, row.asOf, row.n))}</span>`];
+  if (row.source === "ad" && row.asOf) {
+    const age = ageDays(row.asOf, today);
+    if (age != null && age >= 0 && age <= AD_FRESH_DAYS) {
+      const text = age === 0 ? "Fresh today" : age === 1 ? "Fresh · 1 day old" : `Fresh · ${age} days old`;
+      badges.push(`<span class="tag tag-fresh">${text}</span>`);
+    }
+  }
+  if (row.expiredAd) {
+    const when = prettyDate(row.expiredAd.asOf);
+    badges.push(`<span class="tag tag-expired">Expired ad${when ? ` · ${esc(when)}` : ""}</span>`);
+  }
+  return `<span class="badge-row">${badges.join("")}</span>`;
+}
+
 function detailCard(origin, result) {
   const store = result.stores.find((entry) => entry.id === state.selectedStoreId) || result.winner || result.stores[0];
   if (!store) return "";
@@ -384,6 +478,7 @@ function detailCard(origin, result) {
           <button type="button" class="button" data-action="fill-store-brand">Use store brand for missing items</button>
         </div>
       ` : ""}
+      ${store.expiredAds ? `<p class="hint">${store.expiredAds} weekly ad${store.expiredAds === 1 ? "" : "s"} older than 7 days ${store.expiredAds === 1 ? "is" : "are"} marked expired and left out of this shelf.</p>` : ""}
       <ul class="lines">
         ${store.priced.map((row) => {
           const entry = itemById[row.itemId];
@@ -394,8 +489,8 @@ function detailCard(origin, result) {
                 <span class="hint">${esc(packageSize(entry, row.tier))} · ${esc(tierLabel(row.tier))} · ${esc(brandLabel(entry, store.id, row.tier))}</span>
               </span>
               <span class="line-price">
-                <span class="tag tag-${row.source}">${esc(sourceDetail(row.source, row.asOf, row.n))}</span>
-                ${money(row.unit)} <span class="hint">→ ${money(row.lineShelf)}</span>
+                ${quoteBadges(row, localToday())}
+                <span>${money(row.unit)} <span class="hint">→ ${money(row.lineShelf)}</span></span>
               </span>
             </li>
           `;
@@ -594,7 +689,7 @@ function priceRow(storeId, entry, tier) {
         <strong>${esc(entry.name)}</strong>
         <span class="hint">${esc(tierLabel(tier))} · ${esc(brandLabel(entry, storeId, tier))} · ${esc(packageSize(entry, tier))}</span>
       </span>
-      <span role="cell">${model ? `${money(model.price)} <span class="tag tag-${model.source}">${esc(sourceDetail(model.source, model.asOf, model.n))}</span>` : "Not carried"}</span>
+      <span role="cell">${model ? `${money(model.price)} ${quoteBadges(model, localToday())}` : "Not carried"}</span>
       <span role="cell">
         <label class="sr-only" for="${inputId}">Your price for ${esc(entry.name)}, ${esc(tierLabel(tier))}, at this store</label>
         <input id="${inputId}" inputmode="decimal" data-action="override" data-store="${storeId}" data-item="${entry.id}" data-tier="${tier}" value="${yours != null ? yours : ""}">
@@ -921,6 +1016,11 @@ function onClick(event) {
     state.geoError = "";
     persist();
     render();
+  } else if (action === "apply-swap") {
+    const line = state.lines.find((entry) => entry.itemId === button.dataset.item && entry.tier === button.dataset.from);
+    if (line) line.tier = "store";
+    persist();
+    render();
   } else if (action === "fill-store-brand") {
     const origin = currentOrigin();
     const result = scoreTrip(tripOptions(origin));
@@ -985,6 +1085,10 @@ function onChange(event) {
     state.weeklyAds = input.checked;
     persist();
     render();
+  } else if (action === "budget") {
+    state.budgetOn = input.checked;
+    persist();
+    render();
   } else if (action === "loyalty") {
     state.loyalty[input.dataset.store] = input.checked;
     persist();
@@ -1019,7 +1123,7 @@ function onChange(event) {
     state.drive.mode = input.value;
     persist();
     render();
-  } else if (action === "override" || action === "drive" || action === "qty-input" || action === "pump") {
+  } else if (action === "override" || action === "drive" || action === "qty-input" || action === "pump" || action === "budget-cap") {
     if (isPartialNumber(input.value)) {
       clearTimeout(renderTimer);
       return;
@@ -1079,7 +1183,7 @@ function onInput(event) {
     commitReceiptPrice(input);
     return;
   }
-  if (action === "override" || action === "drive" || action === "qty-input" || action === "pump") {
+  if (action === "override" || action === "drive" || action === "qty-input" || action === "pump" || action === "budget-cap") {
     if (isPartialNumber(input.value)) {
       clearTimeout(renderTimer);
       return;
@@ -1094,6 +1198,14 @@ function commitField(input) {
     const qty = Number(raw);
     if (!Number.isFinite(qty)) return false;
     state.lines[Number(input.dataset.index)].qty = Math.min(99, Math.max(1, Math.round(qty)));
+    return true;
+  }
+  if (input.dataset.action === "budget-cap") {
+    if (raw === "") return false;
+    if (!/^\d+(\.\d{1,2})?$/.test(raw)) return false;
+    const value = Number(raw);
+    if (value <= 0 || value > 2000) return false;
+    state.budgetCap = Math.round(value * 100) / 100;
     return true;
   }
   if (input.dataset.action === "pump") {

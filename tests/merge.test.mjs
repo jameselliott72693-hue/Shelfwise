@@ -65,9 +65,20 @@ test("a stale community price falls back to the weekly ad estimate", () => {
   const community = [{
     storeId: "foodlion", itemId: "chicken", tier: "store", price: 9.1, n: 4, asOf: "2026-09-01", town: null,
   }];
-  const quote = quoteUnit("chicken", "foodlion", "store", options({ community, today }));
+  const quote = quoteUnit("chicken", "foodlion", "store", options({ community, today: "2026-10-22" }));
   assert.equal(quote.source, "ad");
   assert.equal(quote.price, 8.79);
+  assert.equal(quote.asOf, "2026-10-18");
+});
+
+test("a stale community price does not use an ad older than 7 days", () => {
+  const community = [{
+    storeId: "foodlion", itemId: "chicken", tier: "store", price: 9.1, n: 4, asOf: "2026-09-01", town: null,
+  }];
+  const quote = quoteUnit("chicken", "foodlion", "store", options({ community, today }));
+  assert.equal(quote.source, "card");
+  assert.ok(quote.price > 8.79);
+  assert.deepEqual(quote.expiredAd, { price: 8.79, asOf: "2026-10-18" });
 });
 
 test("two fresh town reports beat the regional median", () => {
@@ -162,10 +173,17 @@ test("the pump price replaces EIA, and a newer EIA week replaces the bundle", ()
 
 test("EIA payload parsing keeps the latest weekly row", () => {
   const parsed = parseEiaPayload({
-    response: { data: [{ period: "2026-11-02", value: "3.695", series: "EMM_EPMR_PTE_R1Z_DPG" }] },
+    response: {
+      data: [
+        { period: "2026-10-26", value: "3.401", series: "EMM_EPMR_PTE_R1Z_DPG" },
+        { period: "2026-11-09", value: "3.609" },
+        { period: "2026-11-02", value: "3.695", series: "EMM_EPMR_PTE_R1Z_DPG" },
+      ],
+    },
   });
-  assert.equal(parsed.price, 3.695);
-  assert.equal(parsed.period, "2026-11-02");
+  assert.equal(parsed.price, 3.609);
+  assert.equal(parsed.period, "2026-11-09");
+  assert.equal(parsed.series, GAS_FALLBACK.series);
   assert.equal(parseEiaPayload({ response: { data: [] } }), null);
 });
 

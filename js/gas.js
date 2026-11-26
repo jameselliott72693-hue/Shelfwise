@@ -7,7 +7,8 @@ export function roundGas(value) {
 export function parseEiaPayload(payload) {
   const rows = payload?.response?.data;
   if (!Array.isArray(rows) || !rows.length) return null;
-  const row = rows[0];
+  const sorted = rows.slice().sort((a, b) => String(b?.period || "").localeCompare(String(a?.period || "")));
+  const row = sorted[0];
   const price = Number(row.value ?? row.price);
   const period = String(row.period || "");
   if (!Number.isFinite(price) || price <= 0 || price > 20) return null;

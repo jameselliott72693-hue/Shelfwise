@@ -253,7 +253,20 @@ dd { margin: 0.1rem 0 0; font-variant-numeric: tabular-nums; font-weight: 700; }
   padding: 0.55rem 0;
   border-top: 1px solid var(--line);
 }
-.line-price { text-align: right; font-variant-numeric: tabular-nums; }
+.line-price { display: grid; justify-items: end; gap: 0.2rem; text-align: right; font-variant-numeric: tabular-nums; }
+.badge-row { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+.line-price .badge-row { justify-content: flex-end; }
+.budget-row { margin-top: 0.8rem; }
+.budget-swaps { list-style: none; margin: 0.6rem 0 0; padding: 0; }
+.budget-swaps li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.55rem 0;
+  border-top: 1px solid var(--line);
+}
 .tag {
   display: inline-block;
   margin-right: 0.25rem;
@@ -265,6 +278,8 @@ dd { margin: 0.1rem 0 0; font-variant-numeric: tabular-nums; font-weight: 700; }
   font-weight: 700;
 }
 .tag-ad { background: #F8E7D2; color: #7A4510; }
+.tag-fresh { background: var(--teal-wash); color: var(--teal); }
+.tag-expired { background: #F6D5CE; color: var(--terra-deep); }
 .tag-yours, .tag-receipt { background: #F3E0DA; color: var(--terra-deep); }
 .tag-card, .tag-community { background: var(--teal-wash); color: var(--teal); }
 .tag { white-space: normal; }
@@ -425,7 +440,8 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   .price-head { display: none; }
   .rank-money { grid-column: 3; }
   .button-row .button { flex: 1 1 calc(50% - 0.6rem); text-align: center; }
-  .line-price { text-align: left; }
+  .line-price { text-align: left; justify-items: start; }
+  .line-price .badge-row { justify-content: flex-start; }
 }
 
 @media print {

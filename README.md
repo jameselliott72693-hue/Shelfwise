@@ -22,7 +22,8 @@ npm test
 
 Leave `BACKEND_URL` in `js/config.js` as an empty string. That is the default, and GitHub Pages does not need a server.
 
-- The eight-chain comparison, presets, loyalty cards, weekly ad estimates, split trip, share link, print, and download.
+- The eight-chain comparison, presets, loyalty cards, weekly ad estimates, split trip, share link, print, and download. A weekly ad older than 7 days is marked expired and left out of the total. Each quoted line keeps the date it came from.
+- A weekly budget cap, off until you turn it on. When the winning shelf is over the cap, Shelfwise lists up to five store-brand swaps and a two-store split, largest shelf savings first.
 - The bundled EIA gas price: **$3.609 per gallon**, Lower Atlantic (PADD 1C) regular, week of November 9, 2026 (released November 10, 2026), with a link to the EIA series. A "price I paid at the pump" override replaces it in the drive math.
 - Pickup, store delivery, Instacart, DoorDash, Uber Eats, and Shipt rows, dated November 10, 2026, with source links. Amounts that were not on a public fee page stay labeled as the older estimate.
 - **Send list to Instacart** copies the list and opens Instacart search.
@@ -45,8 +46,8 @@ The site is a progressive web app. `manifest.json` and `sw.js` are at the reposi
 
 - **Android Chrome:** the install card can call the browser install prompt. You can also use the browser menu and choose Install app or Add to Home screen.
 - **iPhone Safari:** tap Share, then Add to Home Screen. iOS does not offer a one-tap install prompt to the page.
-- After that, Shelfwise opens full screen and the service worker serves the shell and bundled data when the phone is offline. The last list, pump price, receipt prices, and last community or EIA response stay in `localStorage`.
-- A new deploy is fetched with a cache-busting request. If a page is still running the previous copy when the new service worker takes over, Shelfwise shows **An update is ready** and a Reload button.
+- After that, Shelfwise opens full screen and the service worker serves the shell and bundled data when the phone is offline. CSS, JavaScript, and icons load from the cache and refresh in the background. HTML, `data/prices.js`, and `data/gas.js` are still checked on the network first. The last list, pump price, receipt prices, and last community or EIA response stay in `localStorage`.
+- If a page is still running the previous copy when a new service worker takes over, Shelfwise shows **An update is ready** and a Reload button.
 
 ## GitHub Pages
 
@@ -177,7 +178,7 @@ Fee figures are estimates reviewed November 10, 2026. Confirm them at checkout. 
 
 ## How to update prices
 
-All bundled shelf numbers flow from `data/prices.js`. After an edit, refresh the browser. There is no build. Bump the service worker cache name in `sw.js` (`CACHE`) when you change cached files. The worker then asks for those files with `cache: "reload"`, and an open tab shows **An update is ready**.
+All bundled shelf numbers flow from `data/prices.js`. After an edit, refresh the browser. There is no build. Bump the service worker cache name in `sw.js` (`CACHE`) when you change cached files. Install still fetches the shell with `cache: "reload"`. After that, CSS, JavaScript, and icons are served from the cache and refreshed in the background, while HTML, `data/prices.js`, and `data/gas.js` stay network-first. An open tab shows **An update is ready**.
 
 1. Change `PRICE_AS_OF` and `PRICE_AS_OF_LABEL`.
 2. Move every store-brand shelf together with `STORE_FACTOR`, or national-brand shelves with `NATIONAL_FACTOR`.
@@ -189,7 +190,7 @@ All bundled shelf numbers flow from `data/prices.js`. After an edit, refresh the
    ```
 
    Use `null` for a tier a store does not carry.
-5. Replace `weeklyAds` for the new ad week. Each entry is an item, a store, a tier, a dollar price, and `loyalty: true` when the card has to be on. These are sale estimates, not a scanned circular.
+5. Replace `weeklyAds` for the new ad week. Each entry is an item, a store, a tier, a dollar price, `asOf` set to the circular date, and `loyalty: true` when the card has to be on. An ad more than 7 days older than today is left out of the total and marked expired. These are sale estimates, not a scanned circular.
 
 The bundled gas week is `data/gas.js`. Fee copy and links are `data/fees.js`. Quality scores and the location list are in `data/stores.js`. Town centers are in `data/towns.js`.
 
@@ -218,7 +219,7 @@ npm test
 | `css/styles.css` | Layout, including a phone width and a print view |
 | `js/config.js` | The only backend URL |
 | `js/app.js` | Screen and events |
-| `js/calc.js` | Rank, drive, quality, split trip, price order |
+| `js/calc.js` | Rank, drive, quality, split trip, price order, budget swaps |
 | `js/pool.js` | Community median, freshness, and report checks |
 | `js/gas.js` | EIA parsing and pump-versus-published gas |
 | `js/receipt.js` | Receipt text parsing and item matching |
